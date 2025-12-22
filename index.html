@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>班級小管家</title>
+    
+    <!-- iOS 專用設定 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="班級小管家">
+    <meta name="theme-color" content="#FFD700">
+    
+    <!-- 
+      ★ Apple Icon 設定 ★
+      自動將 SVG 轉為 PNG 格式以符合 iOS 主畫面圖示需求。
+    -->
+    <link rel="apple-touch-icon" id="ios-icon" href="">
+    <link rel="icon" id="fav-icon" href="">
+
+    <script>
+        (function() {
+            // 黃色黑板圖示 SVG
+            const svgSource = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+                <rect width="512" height="512" rx="100" fill="#FFD700"/>
+                <rect x="66" y="106" width="380" height="300" rx="24" fill="#5D4037"/>
+                <rect x="86" y="126" width="340" height="260" rx="12" fill="#1B5E20"/>
+                <path d="M136 210c10-10 60-10 70 0s10 20 0 30M 136 285c10-10 100-10 110 0M 136 360c10-10 150-10 160 0" stroke="#FFF" stroke-width="10" stroke-linecap="round" fill="none" opacity="0.8"/>
+                <path d="M360 350l40-40" stroke="#FFF" stroke-width="16" stroke-linecap="round"/>
+            </svg>`;
+
+            // 將 SVG 轉換為 PNG
+            function generateAppleIcon() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 192; // iOS 建議尺寸
+                canvas.height = 192;
+                const ctx = canvas.getContext('2d');
+                
+                const img = new Image();
+                img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgSource)));
+                
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0, 192, 192);
+                    const pngData = canvas.toDataURL('image/png');
+                    
+                    const iosLink = document.getElementById('ios-icon');
+                    const favLink = document.getElementById('fav-icon');
+                    if (iosLink) iosLink.href = pngData;
+                    if (favLink) favLink.href = pngData;
+                };
+            }
+            generateAppleIcon();
+        })();
+    </script>
+
+    <style>
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        body { background-color: #FEF9F2; margin: 0; padding: 0; overscroll-behavior-y: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        
+        /* 啟動畫面 */
+        #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #FEF9F2; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s; }
+        
+        .loader {
+            border: 8px solid #FFE082; 
+            border-top: 8px solid #5D4037; 
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #error-log { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); color: #D32F2F; padding: 20px; z-index: 10000; overflow: auto; font-family: monospace; font-size: 16px; white-space: pre-wrap; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+            @page { size: A4 portrait; margin: 5mm; }
+            .print-page { page-break-after: always; height: 285mm; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); gap: 8mm; padding: 5mm; }
+            .print-card { border: 2px solid #5D4037; border-radius: 8px; padding: 8px; position: relative; overflow: hidden; display: flex; flex-direction: column; height: 100%; }
+            .print-content { font-size: 10pt; line-height: 1.3; flex-grow: 1; }
+            .print-card:has(.content-overflow) .print-content { font-size: 9pt; line-height: 1.2; }
+            .section-header { font-weight: bold; margin-top: 2px; font-size: 9.5pt; text-decoration: underline; }
+            .signature-box { position: absolute; bottom: 5px; right: 10px; font-size: 12pt; font-weight: bold; text-align: right; width: 100%; border-top: 2px solid #000; padding-top: 8px; margin-top: 10px; }
+        }
+    </style>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
+</head>
+<body>
+    <div id="error-log"></div>
+    <div id="root">
+        <div id="loading-screen">
+            <div class="loader"></div>
+            <h2 style="color: #5D4037; font-weight: bold; font-family: sans-serif; font-size: 1.5rem;">Class Manage</h2>
+            <p style="color: #8D6E63; font-size: 1rem; margin-top: 5px;">啟動中...</p>
+        </div>
+    </div>
+
+    <!-- 安全啟動：3秒後強制移除遮罩 -->
+    <script>
+        setTimeout(function() {
+            var loading = document.getElementById('loading-screen');
+            if (loading && loading.style.display !== 'none') {
+                loading.style.opacity = '0';
+                setTimeout(function() { loading.style.display = 'none'; }, 500);
+            }
+        }, 3000);
+    </script>
+
+    <script type="text/babel" data-presets="env,react">
+        window.onerror = function(message, source, lineno, colno, error) {
+            document.getElementById('error-log').style.display = 'block';
+            document.getElementById('error-log').innerText += "Error: " + message + "\nLine: " + lineno + "\n";
+        };
+
+        const { useState, useEffect, useRef, useCallback, memo } = React;
+
+        const Icons = {
+            Clock: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+            PackageX: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/><path d="m17 13 5 5m-5 0 5-5"/></svg>,
+            MicOff: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>,
+            AlertCircle: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+            MessageCircle: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>,
+            FileWarning: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>,
+            BookOpen: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+            Coffee: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>,
+            PenTool: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>,
+            Stethoscope: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg>,
+            Briefcase: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
+            Palmtree: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 8c0-2.76-2.46-5-5.5-5S2 5.24 2 8h2l1-1 1 1h4"/><path d="M13 7.14A5.82 5.82 0 0 1 16.5 6c3.04 0 5.5 2.24 5.5 5h-3l-1-1-1 1h-3"/><path d="M5.89 9.71c-2.15 2.15-2.3 5.47-.35 7.43l4.24-4.25.7-.7.71-.71 2.12-2.12c-1.95-1.96-5.27-1.8-7.42.35z"/><path d="M11 15.5c.5 2.5-.17 4.5-1 6.5h4c2-5.5-.5-12-1-14"/></svg>,
+            HelpCircle: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+            X: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            Star: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+            User: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            CheckCircle2: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>,
+            Edit3: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>,
+            Trash2: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>,
+            Plus: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+            ClipboardCopy: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+            Download: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+            Settings: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.18-.08a2 2 0 0 0-2 0l-.45.26a2 2 0 0 0-.69 2.82l.14.23a2 2 0 0 1 0 2l-.14.23a2 2 0 0 0 .69 2.82l.45.26a2 2 0 0 0 2 0l.18-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.18.08a2 2 0 0 0 2 0l.45-.26a2 2 0 0 0 .69-2.82l-.14-.23a2 2 0 0 1 0-2l.14-.23a2 2 0 0 0-.69-2.82l-.45-.26a2 2 0 0 0-2 0l-.18.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+            FileSpreadsheet: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></svg>,
+            List: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
+            UserCog: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><circle cx="19" cy="11" r="2"/><path d="M19 8v1"/><path d="M19 13v1"/></svg>,
+            Share: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>,
+            MoreVertical: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>,
+            LayoutGrid: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
+            Info: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,
+            AlertTriangle: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+            Megaphone: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>,
+            Send: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
+            Printer: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>,
+            Upload: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
+            Camera: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>,
+            Sparkles: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 7h4"/><path d="M3 5h4"/></svg>,
+            Key: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>,
+            Trash: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+            RefreshCw: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>,
+            Save: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
+            Check: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><polyline points="20 6 9 17 4 12"/></svg>,
+            Cloud: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400"><path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"/><path d="M14 13.5c0-3.59-2.91-6.5-6.5-6.5S1 9.91 1 13.5"/><path d="M23 19a5 5 0 0 0-5-5c-2.3 0-4.23 1.56-4.8 3.7"/><path d="M19 12a7 7 0 0 0-7-7c-2.8 0-5.2 1.6-6.4 4"/></svg>,
+            Loader: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin text-yellow-600"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
+            Calculator: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="16" y1="14" x2="16" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></svg>
+        };
+
+        const Icon = ({ name, className = "" }) => {
+            const IconComponent = Icons[name] || Icons['AlertCircle'];
+            return <span className={className}><IconComponent /></span>;
+        };
+
+        const customStyles = `
+          @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap');
+          body { background-color: #FEF9F2; background-image: linear-gradient(#E8E8E8 1px, transparent 1px), linear-gradient(90deg, #E8E8E8 1px, transparent 1px); background-size: 20px 20px; font-family: 'ZCOOL KuaiLe', cursive, sans-serif; color: #5D4037; font-size: 18px; }
+          .btn-3d { transition: all 0.1s; border: 3px solid #5D4037; box-shadow: 4px 4px 0px #5D4037; border-radius: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
+          .btn-3d:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px #5D4037; }
+          .nav-btn-settings { background-color: #FF5252; color: white; border: 3px solid #5D4037; box-shadow: 0px 4px 0px #3E2723; transform: translateY(-10px); z-index: 50; }
+          .nav-btn-settings.active { background-color: #FF1744; transform: translateY(-16px) scale(1.1); box-shadow: 0px 6px 0px #3E2723; border: 3px solid #FFF; outline: 3px solid #5D4037; }
+          .bg-mint { background-color: #CDF0EA; } .bg-yellow { background-color: #FDFD96; } .bg-pink { background-color: #FFC4C4; } .bg-blue-soft { background-color: #C4E4FF; } .bg-purple-soft { background-color: #E2C4FF; } .bg-orange-soft { background-color: #FFD8B1; } .bg-red-alert { background-color: #FF8A80; color: white; } .bg-line { background-color: #06C755; color: white; }
+          .bg-coffee { background-color: #5D4037; color: white; }
+          .text-coffee { color: #5D4037; } .border-coffee { border-color: #5D4037; }
+          .doodle-card { background: white; border: 3px solid #5D4037; border-radius: 24px; box-shadow: 6px 6px 0px rgba(93, 64, 55, 0.2); }
+          .input-hand { border: 3px solid #5D4037; border-radius: 12px; padding: 12px 16px; background: #FFF; font-family: 'ZCOOL KuaiLe', cursive; outline: none; width: 100%; font-size: 1.1rem; }
+          .input-hand:focus { box-shadow: 3px 3px 0px #5D4037; }
+          .marker-highlight { background: linear-gradient(120deg, #FDFD96 0%, #FDFD96 100%); background-repeat: no-repeat; background-size: 100% 40%; background-position: 0 80%; }
+        `;
+
+        const PERIODS = [
+          { id: 'early', label: '早修' }, { id: 'p1', label: '第一節' }, { id: 'p2', label: '第二節' }, { id: 'p3', label: '第三節' }, { id: 'p4', label: '第四節' },
+          { id: 'lunch', label: '午餐' }, { id: 'nap', label: '午休' }, { id: 'p5', label: '第五節' }, { id: 'p6', label: '第六節' }, { id: 'p7', label: '第七節' }, { id: 'p8', label: '第八節' },
+        ];
+
+        const DEFAULT_BEHAVIORS = [
+          { id: 'item_missing', label: '物品未帶', icon: 'PackageX', color: 'bg-pink' },
+          { id: 'late_class', label: '晚進教室', icon: 'Clock', color: 'bg-yellow' },
+          { id: 'rude', label: '未盡職守', icon: 'MicOff', color: 'bg-pink' },
+          { id: 'noise', label: '吵鬧干擾', icon: 'AlertCircle', color: 'bg-pink' },
+          { id: 'chat', label: '聊天', icon: 'MessageCircle', color: 'bg-yellow' },
+          { id: 'note', label: '傳紙條', icon: 'FileWarning', color: 'bg-yellow' },
+          { id: 'other_book', label: '看課外書', icon: 'BookOpen', color: 'bg-yellow' },
+          { id: 'sleep', label: '打瞌睡', icon: 'Coffee', color: 'bg-pink' },
+          { id: 'no_hw_cls', label: '作業未交', icon: 'FileWarning', color: 'bg-pink' },
+          { id: 'reply_late', label: '回條未準時繳交', icon: 'FileSpreadsheet', color: 'bg-yellow' },
+          { id: 'other', label: '其他', icon: 'PenTool', color: 'bg-blue-soft' },
+        ];
+
+        const ATTENDANCE_TYPES = [
+          { id: 'late', label: '遲到', icon: 'Clock', color: 'bg-yellow' },
+          { id: 'sick', label: '病假', icon: 'Stethoscope', color: 'bg-mint' },
+          { id: 'official', label: '公假', icon: 'Briefcase', color: 'bg-blue-soft' },
+          { id: 'personal', label: '事假', icon: 'Palmtree', color: 'bg-purple-soft' },
+          { id: 'other_leave', label: '其他', icon: 'HelpCircle', color: 'bg-gray-200' },
+          { id: 'absent', label: '缺席', icon: 'AlertCircle', color: 'bg-pink' },
+        ];
+
+        const CONTACT_BOOK_TYPES = [
+          { id: 'cb_missing', label: '聯絡簿家長未簽名', icon: 'X', color: 'bg-pink' },
+          { id: 'cb_late', label: '聯絡簿缺交', icon: 'Clock', color: 'bg-yellow' },
+          { id: 'cb_good', label: '聯絡簿優良', icon: 'Star', color: 'bg-mint' },
+        ];
+
+        const DEFAULT_SUBJECTS = [
+          { id: 'chinese', label: '國文' }, { id: 'english', label: '英語' }, { id: 'math', label: '數學' },
+          { id: 'science', label: '理化' }, { id: 'civics', label: '公民' }, { id: 'history', label: '歷史' }, { id: 'geo', label: '地理' },
+        ];
+
+        // 獨立組件 - 學生選單 (防回彈核心：type="button" + e.preventDefault + React.memo)
+        const StudentSelector = memo(({ isOpen, onClose, title, students, selected, onToggle }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#FEF9F2] w-[98%] md:w-[700px] max-w-4xl rounded-2xl border-4 border-coffee shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                        <div className="bg-yellow p-4 border-b-4 border-coffee flex justify-between items-center">
+                            <h3 className="text-2xl font-bold text-coffee">點選學生</h3>
+                            <button onClick={onClose} className="bg-white p-2 rounded-full border-2 border-coffee">
+                                <Icon name="CheckCircle2" className="w-8 h-8" />
+                            </button>
+                        </div>
+                        <div className="bg-yellow px-4 pb-2 text-coffee font-bold opacity-80 border-b-2 border-coffee mb-2">正在登記：{title}</div>
+                        <div className="p-4 overflow-y-auto grid grid-cols-5 gap-2" style={{overscrollBehavior: 'contain'}}>
+                            {students.map(s => (
+                                <button type="button" key={s.id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(s.id); }} className={`p-1 rounded-xl border-2 border-coffee font-bold text-base flex flex-col items-center justify-center min-h-[60px] ${selected.includes(s.id) ? 'bg-coffee text-white shadow-lg' : 'bg-white text-coffee hover:bg-gray-100'}`}>
+                                    <span className="text-xs opacity-70 mb-1">#{s.id}</span>
+                                    <span className="truncate w-full text-center text-lg leading-none">{s.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <div className="p-4 bg-white border-t-4 border-coffee text-center">
+                            <button onClick={onClose} className="btn-3d w-full bg-mint py-4 text-2xl">完 成</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        });
+
+        function ClassManagerLine() {
+          const [activeTab, setActiveTab] = useState('basic'); 
+          const [saveStatus, setSaveStatus] = useState('saved');
+          const [statsStartDate, setStatsStartDate] = useState('');
+          const [statsEndDate, setStatsEndDate] = useState('');
+          
+          // 在組件掛載後，移除 Loading Screen
+          useEffect(() => {
+              const loading = document.getElementById('loading-screen');
+              if(loading) {
+                  loading.style.opacity = '0';
+                  setTimeout(() => loading.style.display = 'none', 500);
+              }
+          }, []);
+
+          const [currentDate, setCurrentDate] = useState(() => {
+            try {
+                const now = new Date();
+                const offset = 8; 
+                const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+                const nd = new Date(utc + (3600000 * offset));
+                return nd.toISOString().split('T')[0];
+            } catch(e) { return new Date().toISOString().split('T')[0]; }
+          });
+          
+          const [allData, setAllData] = useState(() => {
+            try { const saved = localStorage.getItem('classLogDB_Line'); return saved ? JSON.parse(saved) : {}; } catch { return {}; }
+          });
+
+          const [week, setWeek] = useState('1'); 
+          const [dutyStudent, setDutyStudent] = useState('1');
+          const [attendanceData, setAttendanceData] = useState({});
+          const [missingData, setMissingData] = useState({});
+          const [classLogData, setClassLogData] = useState({});
+          const [periodNotes, setPeriodNotes] = useState({}); 
+          const [incidentLog, setIncidentLog] = useState('');
+          const [attendanceNotes, setAttendanceNotes] = useState({}); 
+          
+          const [subjects, setSubjects] = useState(() => { try { const s = localStorage.getItem('classLogSubjects'); return s ? JSON.parse(s) : DEFAULT_SUBJECTS; } catch { return DEFAULT_SUBJECTS; } });
+          const [behaviors, setBehaviors] = useState(() => { try { const b = localStorage.getItem('classLogBehaviors'); return b ? JSON.parse(b) : DEFAULT_BEHAVIORS; } catch { return DEFAULT_BEHAVIORS; } });
+          const [students, setStudents] = useState(() => { try { const s = localStorage.getItem('classLogStudents'); return s ? JSON.parse(s) : Array.from({ length: 30 }, (_, i) => ({ id: i + 1, name: `${i + 1}號` })); } catch { return Array.from({ length: 30 }, (_, i) => ({ id: i + 1, name: `${i + 1}號` })); } });
+          
+          const [newSubjectName, setNewSubjectName] = useState('');
+          const [isAddingSubject, setIsAddingSubject] = useState(false);
+          const [newBehaviorName, setNewBehaviorName] = useState('');
+          const [isEditingBehaviors, setIsEditingBehaviors] = useState(false);
+          const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+          const [selectorConfig, setSelectorConfig] = useState({ type: '', category: '', period: '' });
+          
+          const [selectedStudentReport, setSelectedStudentReport] = useState(1);
+          const [finalReportText, setFinalReportText] = useState("");
+
+          const [bulkNamesInput, setBulkNamesInput] = useState(''); 
+          const [currentSubjectId, setCurrentSubjectId] = useState('');
+          const [currentLogPeriod, setCurrentLogPeriod] = useState('p1');
+          const [teacherNote, setTeacherNote] = useState(() => localStorage.getItem('classLogTeacherNote') || '');
+          const [isProcessing, setIsProcessing] = useState(false);
+          const fileInputRef = useRef(null);
+          const backupInputRef = useRef(null);
+
+          useEffect(() => {
+            const dayData = allData[currentDate] || {};
+            setWeek(dayData.week || '1');
+            setDutyStudent(dayData.dutyStudent || '1');
+            setAttendanceData(dayData.attendanceData || {});
+            setMissingData(dayData.missingData || {});
+            setClassLogData(dayData.classLogData || {});
+            setPeriodNotes(dayData.periodNotes || {});
+            setIncidentLog(dayData.incidentLog || '');
+            setAttendanceNotes(dayData.attendanceNotes || {}); 
+          }, [currentDate, allData]); 
+
+          // 儲存邏輯 (含狀態顯示)
+          useEffect(() => {
+            setSaveStatus('saving');
+            const timer = setTimeout(() => {
+              setAllData(prev => ({ ...prev, [currentDate]: { week, dutyStudent, attendanceData, missingData, classLogData, periodNotes, incidentLog, attendanceNotes } }));
+              localStorage.setItem('classLogDB_Line', JSON.stringify({ ...allData, [currentDate]: { week, dutyStudent, attendanceData, missingData, classLogData, periodNotes, incidentLog, attendanceNotes } }));
+              setSaveStatus('saved');
+            }, 800);
+            return () => clearTimeout(timer);
+          }, [week, dutyStudent, attendanceData, missingData, classLogData, periodNotes, incidentLog, attendanceNotes, currentDate]);
+
+          useEffect(() => {
+            localStorage.setItem('classLogSubjects', JSON.stringify(subjects));
+            localStorage.setItem('classLogBehaviors', JSON.stringify(behaviors));
+            localStorage.setItem('classLogStudents', JSON.stringify(students));
+          }, [subjects, behaviors, students]);
+
+          useEffect(() => { localStorage.setItem('classLogTeacherNote', teacherNote); }, [teacherNote]);
+          useEffect(() => { if (subjects.length > 0 && !currentSubjectId) setCurrentSubjectId(subjects[0].id); }, [subjects, currentSubjectId]);
+          
+          useEffect(() => {
+              const msg = generateParentMessage(selectedStudentReport, true);
+              setFinalReportText(msg);
+          }, [selectedStudentReport, teacherNote, allData]); 
+
+          const handleUpdateStudentName = (id, newName) => {
+              setStudents(prev => prev.map(s => 
+                  s.id === id ? { ...s, name: newName } : s
+              ));
+          };
+
+          const processFile = (file) => {
+              setIsProcessing(true);
+              const reader = new FileReader();
+              const fileName = file.name.toLowerCase();
+
+              if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                  reader.onload = (e) => {
+                      try {
+                          const data = new Uint8Array(e.target.result);
+                          const workbook = XLSX.read(data, {type: 'array'});
+                          const firstSheetName = workbook.SheetNames[0];
+                          const worksheet = workbook.Sheets[firstSheetName];
+                          const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                          
+                          let names = [];
+                          jsonData.forEach(row => {
+                              if(row[0] && typeof row[0] === 'string') names.push(row[0]);
+                          });
+                          
+                          if(names.length > 0) {
+                              setBulkNamesInput(names.join('\n'));
+                              alert(`已從 Excel 讀取 ${names.length} 筆資料，請確認後按「匯入」。`);
+                          } else {
+                              alert('Excel 中找不到資料，請確認名字在第一欄。');
+                          }
+                      } catch(err) {
+                          alert('Excel 解析失敗：' + err);
+                      }
+                      setIsProcessing(false);
+                  };
+                  reader.readAsArrayBuffer(file);
+              } 
+              else if (fileName.endsWith('.docx')) {
+                  reader.onload = (e) => {
+                      mammoth.extractRawText({arrayBuffer: e.target.result})
+                          .then(result => {
+                              const text = result.value;
+                              const cleanText = text.split('\n').map(l=>l.trim()).filter(l=>l).join('\n');
+                              setBulkNamesInput(cleanText);
+                              alert('已讀取 Word 文字，請確認。');
+                              setIsProcessing(false);
+                          })
+                          .catch(err => {
+                              alert('Word 解析失敗：' + err);
+                              setIsProcessing(false);
+                          });
+                  };
+                  reader.readAsArrayBuffer(file);
+              }
+              else if (file.type.startsWith('image/')) {
+                  Tesseract.recognize(
+                      file,
+                      'chi_tra',
+                      { logger: m => console.log(m) }
+                  ).then(({ data: { text } }) => {
+                      const cleanText = text.split(/\s+/).filter(s => s.length >= 2).join('\n');
+                      setBulkNamesInput(cleanText);
+                      alert('圖片辨識完成！OCR 可能有錯字，請務必檢查。');
+                      setIsProcessing(false);
+                  }).catch(err => {
+                      alert('圖片辨識失敗：' + err);
+                      setIsProcessing(false);
+                  });
+              } else {
+                  alert('不支援的檔案格式。請使用 Excel, Word 或 圖片。');
+                  setIsProcessing(false);
+              }
+          };
+
+          const handleBulkImportNames = () => {
+            if (!bulkNamesInput.trim()) return;
+            const names = bulkNamesInput.split(/\n/).map(n => n.trim()).filter(n => n);
+            if (confirm(`即將匯入 ${names.length} 位學生，確定嗎？`)) {
+              setStudents(names.map((name, index) => ({ id: index + 1, name: name })));
+              setBulkNamesInput('');
+              alert('匯入成功！');
+            }
+          };
+          
+          const handleAddSubject = () => { 
+              if (newSubjectName.trim()) { 
+                  const newId = `sub_${Date.now()}`; 
+                  setSubjects([...subjects, { id: newId, label: newSubjectName.trim() }]); 
+                  setNewSubjectName(''); 
+                  setIsAddingSubject(false); 
+                  setCurrentSubjectId(newId); 
+              } else {
+                  alert("請輸入科目名稱");
+              }
+          };
+          const handleDeleteSubject = (id, e) => { e.stopPropagation(); if (confirm('確定刪除此科目？')) setSubjects(subjects.filter(s => s.id !== id)); };
+          
+          const handleAddBehavior = () => { 
+              if (newBehaviorName.trim()) { 
+                  setBehaviors([...behaviors, { id: `beh_${Date.now()}`, label: newBehaviorName.trim(), icon: 'AlertCircle', color: 'bg-yellow' }]); 
+                  setNewBehaviorName(''); 
+              } else {
+                  alert("請輸入違規項目名稱");
+              }
+          };
+          const handleDeleteBehavior = (id, e) => { e.stopPropagation(); if (confirm('確定刪除此項目？')) setBehaviors(behaviors.filter(b => b.id !== id)); };
+          
+          const handleAttendanceClick = (typeId) => {
+              if (typeId === 'other_leave') {
+                  const currentNote = attendanceNotes['other_leave'] || "";
+                  const note = prompt("請輸入「其他」缺席的原因 (例如：事假、喪假)：", currentNote);
+                  
+                  if (note !== null) {
+                      setAttendanceNotes(prev => ({ ...prev, 'other_leave': note }));
+                      openSelector('attendance', typeId);
+                  }
+              } else {
+                  openSelector('attendance', typeId);
+              }
+          };
+          
+          const handleBehaviorClick = (behaviorId) => {
+            if (isEditingBehaviors) return;
+            if (behaviorId === 'other') {
+              const currentNote = periodNotes[currentLogPeriod] || '';
+              const note = prompt(`請輸入 ${PERIODS.find(p=>p.id===currentLogPeriod)?.label} 的其他說明：`, currentNote);
+              if (note !== null) {
+                  updatePeriodNote(note);
+                  openSelector('log', behaviorId, currentLogPeriod);
+              }
+            } else {
+              openSelector('log', behaviorId, currentLogPeriod);
+            }
+          };
+
+          const openSelector = (type, category, period = null) => { setSelectorConfig({ type, category, period }); setIsSelectorOpen(true); };
+          
+          const toggleStudent = useCallback((studentId) => {
+            const { type, category, period } = selectorConfig;
+            if (type === 'attendance') setAttendanceData(prev => { const list = prev[category] || []; return { ...prev, [category]: list.includes(studentId) ? list.filter(id => id !== studentId) : [...list, studentId] }; });
+            else if (type === 'missing') setMissingData(prev => { const list = prev[category] || []; return { ...prev, [category]: list.includes(studentId) ? list.filter(id => id !== studentId) : [...list, studentId] }; });
+            else if (type === 'log') setClassLogData(prev => { const out = prev[period] || {}; const list = out[category] || []; return { ...prev, [period]: { ...out, [category]: list.includes(studentId) ? list.filter(id => id !== studentId) : [...list, studentId] } }; });
+          }, [selectorConfig]);
+
+          const getSelectedStudents = () => {
+            const { type, category, period } = selectorConfig;
+            if (type === 'attendance') return attendanceData[category] || [];
+            if (type === 'missing') return missingData[category] || [];
+            if (type === 'log') return classLogData[period]?.[category] || [];
+            return [];
+          };
+
+          const updatePeriodNote = (val) => setPeriodNotes(prev => ({ ...prev, [currentLogPeriod]: val }));
+          const downloadCSV = (content, filename) => {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' }));
+            link.download = filename;
+            link.click();
+          };
+
+          const getWeeklyStats = (studentId) => {
+            const dates = []; const today = new Date(currentDate); 
+            for (let i = 0; i < 5; i++) { const d = new Date(today); d.setDate(today.getDate() - i); dates.push(d.toISOString().split('T')[0]); }
+            
+            let stats = { attendance: {}, missing: {}, behavior: {}, contactBook: {}, homework: {} }; 
+            let detailedBehaviors = [];
+            let detailedAttendance = []; 
+            let detailedMissing = [];
+            let detailedContactBook = [];
+            let detailedHomework = [];     
+
+            dates.forEach(date => {
+              const data = allData[date]; if (!data) return;
+              const dateStr = date.slice(5).replace('-','/'); // 10/25
+
+              if (data.attendanceData) Object.keys(data.attendanceData).forEach(k => { 
+                  if (data.attendanceData[k]?.includes(studentId)) { 
+                      stats.attendance[k] = (stats.attendance[k] || 0) + 1; 
+                      const typeName = ATTENDANCE_TYPES.find(t=>t.id===k)?.label || k;
+                      detailedAttendance.push(`${dateStr} ${typeName}`);
+                  } 
+              });
+
+              if (data.missingData) Object.keys(data.missingData).forEach(k => { 
+                  if (data.missingData[k]?.includes(studentId)) { 
+                      const isContactBook = CONTACT_BOOK_TYPES.some(c => c.id === k);
+                      const sub = subjects.find(s => s.id === k);
+                      let label = k;
+                      if (sub) label = sub.label + '作業缺交';
+                      if (isContactBook) label = CONTACT_BOOK_TYPES.find(c => c.id === k)?.label || k;
+                      stats.missing[label] = (stats.missing[label] || 0) + 1;
+                      detailedMissing.push(`${dateStr} ${label}`);
+                      if (isContactBook) {
+                          stats.contactBook[label] = (stats.contactBook[label] || 0) + 1;
+                          detailedContactBook.push(`${dateStr} ${label}`);
+                      } else {
+                          stats.homework[label] = (stats.homework[label] || 0) + 1;
+                          detailedHomework.push(`${dateStr} ${label}`);
+                      }
+                  } 
+              });
+
+              if (data.classLogData) Object.keys(data.classLogData).forEach(periodId => { 
+                  const pLog = data.classLogData[periodId]; 
+                  if (pLog) { 
+                      Object.keys(pLog).forEach(bId => { 
+                          if (pLog[bId]?.includes(studentId)) { 
+                              const b = behaviors.find(be => be.id === bId); 
+                              const label = b ? b.label : '其他'; 
+                              const periodLabel = PERIODS.find(p => p.id === periodId)?.label || periodId; 
+                              stats.behavior[label] = (stats.behavior[label] || 0) + 1; 
+                              detailedBehaviors.push(`${dateStr} ${periodLabel}：${label}`); 
+                          } 
+                      }); 
+                  } 
+              });
+            });
+
+            return { 
+                dates, 
+                stats, 
+                detailedBehaviors: detailedBehaviors.reverse(),
+                detailedAttendance: detailedAttendance.reverse(),
+                detailedMissing: detailedMissing.reverse(),
+                detailedContactBook: detailedContactBook.reverse(),
+                detailedHomework: detailedHomework.reverse()
+            };
+          };
+          
+          const handleExportIntervalStats = () => {
+             if (!statsStartDate || !statsEndDate) { alert("請選擇開始與結束日期！"); return; }
+             
+             const start = new Date(statsStartDate);
+             const end = new Date(statsEndDate);
+             let results = students.map(s => ({
+                 id: s.id,
+                 name: s.name,
+                 attendanceStats: {},
+                 missingStats: {},
+                 behaviorStats: {},
+                 totalAttendance: 0,
+                 totalMissing: 0,
+                 totalBehavior: 0
+             }));
+
+             for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                 const dateKey = d.toISOString().split('T')[0];
+                 const dayData = allData[dateKey];
+                 if (!dayData) continue;
+
+                 results.forEach(student => {
+                     if (dayData.attendanceData) {
+                         Object.entries(dayData.attendanceData).forEach(([key, list]) => {
+                             if (list && list.includes(student.id)) {
+                                 const typeName = ATTENDANCE_TYPES.find(t=>t.id===key)?.label || key;
+                                 student.attendanceStats[typeName] = (student.attendanceStats[typeName] || 0) + 1;
+                                 student.totalAttendance++;
+                             }
+                         });
+                     }
+                     if (dayData.missingData) {
+                         Object.entries(dayData.missingData).forEach(([key, list]) => {
+                             if (list && list.includes(student.id)) {
+                                 let label = key;
+                                 const sub = subjects.find(s => s.id === key);
+                                 const cb = CONTACT_BOOK_TYPES.find(c => c.id === key);
+                                 if (sub) label = sub.label + '作業缺交';
+                                 if (cb) label = cb.label;
+                                 student.missingStats[label] = (student.missingStats[label] || 0) + 1;
+                                 student.totalMissing++;
+                             }
+                         });
+                     }
+                     if (dayData.classLogData) {
+                         Object.values(dayData.classLogData).forEach(periodLogs => {
+                             if (periodLogs) {
+                                 Object.entries(periodLogs).forEach(([key, list]) => {
+                                     if (list && list.includes(student.id)) {
+                                          const b = behaviors.find(be => be.id === key);
+                                          const label = b ? b.label : '其他';
+                                          student.behaviorStats[label] = (student.behaviorStats[label] || 0) + 1;
+                                          student.totalBehavior++;
+                                     }
+                                 });
+                             }
+                         });
+                     }
+                 });
+             }
+             
+             let csv = `學期區間統計表\n統計區間,${statsStartDate} ~ ${statsEndDate}\n\n座號,姓名,缺勤總數,缺勤明細,缺交總數,缺交明細,違規總數,違規明細\n`;
+             results.forEach(s => {
+                 const attDetails = Object.entries(s.attendanceStats).map(([k,v]) => `${k}(${v})`).join('、');
+                 const missDetails = Object.entries(s.missingStats).map(([k,v]) => `${k}(${v})`).join('、');
+                 const behDetails = Object.entries(s.behaviorStats).map(([k,v]) => `${k}(${v})`).join('、');
+                 csv += `${s.id},${s.name},${s.totalAttendance},"${attDetails}",${s.totalMissing},"${missDetails}",${s.totalBehavior},"${behDetails}"\n`;
+             });
+             
+             downloadCSV(csv, `區間統計_${statsStartDate}_${statsEndDate}.csv`);
+          };
+
+
+          const getDailyStudentViolations = () => {
+            const studentViolations = {};
+            PERIODS.forEach(p => {
+              const logs = classLogData[p.id]; if (!logs) return;
+              behaviors.forEach(b => {
+                const list = logs[b.id]; if (list && list.length > 0) list.forEach(studentId => { if (!studentViolations[studentId]) studentViolations[studentId] = []; studentViolations[studentId].push(`${p.label}: ${b.label}`); });
+              });
+            });
+            return studentViolations;
+          };
+
+          const exportDailyLog = () => {
+            let csv = `班級日誌,日期：${currentDate},週次：${week},值日生：${dutyStudent}\n\n【到校】\n類別,學生\n`;
+            ATTENDANCE_TYPES.forEach(t => { const list = attendanceData[t.id]?.map(id => { const s = students.find(stud => stud.id === id); return s ? `${id}(${s.name})` : id; }).join('、') || ''; if(list) csv += `${t.label},"${list}"\n`; });
+            csv += `\n【作業】\n項目,缺交\n`;
+            const getMissingNames = (list) => list?.map(id => { const s = students.find(stud => stud.id === id); return s ? `${id}(${s.name})` : id; }).join('、') || '';
+            CONTACT_BOOK_TYPES.forEach(t => { const str = getMissingNames(missingData[t.id]); if(str) csv += `${t.label},"${str}"\n`; });
+            subjects.forEach(s => { const str = getMissingNames(missingData[s.id]); if(str) csv += `${s.label}缺交,"${str}"\n`; });
+            csv += `\n【課堂】\n時段,行為,學生,備註\n`;
+            PERIODS.forEach(p => {
+              const logs = classLogData[p.id]; const note = periodNotes[p.id] || '';
+              if (logs) behaviors.forEach(b => { const rawList = logs[b.id]; if (rawList && rawList.length > 0) { const names = rawList.map(id => { const s = students.find(stud => stud.id === id); return s ? `${id}(${s.name})` : id; }).join('、'); csv += `${p.label},${b.label},"${names}","${note}"\n`; } });
+              if ((!logs || Object.keys(logs).every(k => logs[k].length === 0)) && note) csv += `${p.label},備註,,"${note}"\n`;
+            });
+            csv += `\n【偶發】\n"${incidentLog.replace(/"/g, '""')}"\n`;
+            downloadCSV(csv, `班級日誌_${currentDate}.csv`);
+          };
+
+          const exportWholeClassWeekly = () => { 
+             const dates = []; const today = new Date(currentDate); for (let i = 0; i < 5; i++) { const d = new Date(today); d.setDate(today.getDate() - i); dates.push(d.toISOString().split('T')[0]); } 
+             let csv = `全班週報表\n統計範圍,${dates[dates.length-1]} ~ ${dates[0]}\n\n座號,姓名,缺勤總數,缺交總數,違規總數,缺勤明細,缺交明細,違規明細\n`; 
+             students.forEach(student => { const { stats } = getWeeklyStats(student.id); const totalAtt = Object.values(stats.attendance).reduce((a,b) => a+b, 0); const totalMiss = Object.values(stats.missing).reduce((a,b) => a+b, 0); const totalBeh = Object.values(stats.behavior).reduce((a,b) => a+b, 0); const strAtt = Object.entries(stats.attendance).map(([k,v]) => { const t = ATTENDANCE_TYPES.find(x => x.id === k); return `${t?.label || k}(${v})`; }).join('、'); const strMiss = Object.entries(stats.missing).map(([k,v]) => `${k}(${v})`).join('、'); const strBeh = Object.entries(stats.behavior).map(([k,v]) => `${k}(${v})`).join('、'); csv += `${student.id},${student.name},${totalAtt},${totalMiss},${totalBeh},"${strAtt}","${strMiss}","${strBeh}"\n`; }); 
+             downloadCSV(csv, `全班週報表_${currentDate}.csv`); 
+          };
+          
+          const handleResetData = () => {
+              if (confirm("⚠️ 警告：這將會刪除所有歷史資料！\n此動作無法復原。\n\n確定要重置嗎？")) {
+                  localStorage.removeItem('classLogDB_Line');
+                  localStorage.removeItem('classLogTeacherNote');
+                  alert("資料已重置！");
+                  window.location.reload();
+              }
+          };
+
+          const handleBackupData = () => {
+              const data = {
+                  version: "2.0",
+                  timestamp: new Date().toISOString(),
+                  classLogDB: JSON.parse(localStorage.getItem('classLogDB_Line') || '{}'),
+                  subjects: JSON.parse(localStorage.getItem('classLogSubjects') || '[]'),
+                  behaviors: JSON.parse(localStorage.getItem('classLogBehaviors') || '[]'),
+                  students: JSON.parse(localStorage.getItem('classLogStudents') || '[]'),
+                  teacherNote: localStorage.getItem('classLogTeacherNote') || ''
+              };
+              const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `班級小管家備份_${new Date().toISOString().slice(0,10)}.json`;
+              a.click();
+          };
+
+          const handleRestoreData = (event) => {
+              const file = event.target.files[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                  try {
+                      const data = JSON.parse(e.target.result);
+                      if (data.classLogDB) localStorage.setItem('classLogDB_Line', JSON.stringify(data.classLogDB));
+                      if (data.subjects) localStorage.setItem('classLogSubjects', JSON.stringify(data.subjects));
+                      if (data.behaviors) localStorage.setItem('classLogBehaviors', JSON.stringify(data.behaviors));
+                      if (data.students) localStorage.setItem('classLogStudents', JSON.stringify(data.students));
+                      if (data.teacherNote) localStorage.setItem('classLogTeacherNote', data.teacherNote);
+                      alert("資料還原成功！網頁即將重新整理。");
+                      window.location.reload();
+                  } catch (err) {
+                      alert("還原失敗：檔案格式錯誤");
+                  }
+              };
+              reader.readAsText(file);
+          };
+
+          const handlePrintAllStudents = () => {
+            const printWindow = window.open('', '', 'width=800,height=600');
+            let html = '<html><head><title>全班個別週報表</title>';
+            html += '<style>';
+            html += 'body { font-family: "Microsoft JhengHei", sans-serif; padding: 20px; font-size: 10pt; line-height: 1.1; }';
+            html += '.page { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); gap: 10px; height: 98vh; page-break-after: always; box-sizing: border-box; }';
+            html += '.card { border: 2px solid #5D4037; padding: 5px; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; page-break-inside: avoid; height: 100%; position: relative; }';
+            html += '.msg-content { white-space: pre-wrap; font-size: 9pt; height: 100%; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-start; }';
+            html += '.section-header { font-weight: bold; margin-top: 2px; font-size: 9.5pt; text-decoration: underline; }';
+            html += '.signature-box { position: absolute; bottom: 5px; right: 10px; font-size: 12pt; font-weight: bold; text-align: right; width: 100%; border-top: 2px solid #000; padding-top: 8px; margin-top: 10px; }';
+            html += '@media print { body { margin: 0; padding: 0; } }';
+            html += '</style></head><body>';
+
+            let chunks = [];
+            for (let i = 0; i < students.length; i += 6) { chunks.push(students.slice(i, i + 6)); }
+
+            chunks.forEach(chunk => {
+                html += '<div class="page">';
+                chunk.forEach(student => {
+                    let msg = generateParentMessage(student.id, true);
+                    msg = msg.replace('📢 注意事項：', '<b><u>📢 注意事項：</u></b>');
+                    html += `<div class="card">
+                        <div class="msg-content content-overflow">${msg}</div>
+                        <div class="signature-box"><b>家長簽名：________________</b></div>
+                    </div>`;
+                });
+                html += '</div>';
+            });
+
+            html += '</body></html>';
+            printWindow.document.write(html);
+            printWindow.document.close();
+            setTimeout(() => { printWindow.print(); }, 500);
+          };
+
+          const exportStudentWeekly = () => { const s = students.find(s => s.id === selectedStudentReport); if(!s) return alert('請先選擇學生'); const { dates, stats } = getWeeklyStats(selectedStudentReport); let csv = `學生個別週報表\n座號,${s.id}\n姓名,${s.name}\n統計範圍,${dates[dates.length-1]} ~ ${dates[0]}\n\n類別,項目,次數\n`; Object.entries(stats.attendance).forEach(([k, v]) => csv += `缺勤,${ATTENDANCE_TYPES.find(t=>t.id===k)?.label||k},${v}\n`); Object.entries(stats.missing).forEach(([k, v]) => csv += `缺交,${k},${v}\n`); Object.entries(stats.behavior).forEach(([k, v]) => csv += `違規,${k},${v}\n`); downloadCSV(csv, `${s.name}_週報表.csv`); };
+          
+          const generateParentMessage = (studentId, returnOnly = false) => { 
+            const s = students.find(stud => stud.id === studentId); 
+            if (!s) return "請先選擇學生..."; 
+            
+            const { dates, stats, detailedBehaviors, detailedAttendance, detailedMissing, detailedContactBook, detailedHomework } = getWeeklyStats(studentId); 
+            const dateRange = `${dates[dates.length-1].slice(5).replace('-','/')} ~ ${dates[0].slice(5).replace('-','/')}`; 
+            
+            let msg = ""; 
+            if (teacherNote.trim()) msg += `📢 注意事項：\n${teacherNote}\n\n------------------------------\n\n`; 
+            msg += `【班級週報】親愛的家長您好，這是 ${s.name} 本週 (${dateRange}) 的在校表現摘要：\n\n`; 
+            
+            msg += `📅 缺勤紀錄：`;
+            if (detailedAttendance.length > 0) { msg += `\n`; detailedAttendance.forEach(item => { msg += `   - ${item}\n`; }); } else { msg += ` 全勤 👍\n`; }
+            msg += `\n`;
+
+            msg += `📝 聯絡簿狀況：`;
+            if (detailedContactBook.length > 0) { msg += `\n`; detailedContactBook.forEach(item => { msg += `   - ${item}\n`; }); } else { msg += ` 表現優異 👍\n`; }
+            msg += `\n`;
+
+            const totalHomeworkMissing = Object.values(stats.homework).reduce((a,b) => a+b, 0);
+            msg += `📚 作業缺交 (${totalHomeworkMissing}次)：`;
+            if (detailedHomework.length > 0) { msg += `\n`; detailedHomework.forEach(item => { msg += `   - ${item}\n`; }); } else { msg += ` 作業全交 👍\n`; }
+            msg += `\n`;
+            
+            const totalBehaviorCount = Object.values(stats.behavior).reduce((a,b) => a+b, 0);
+            msg += `⚠️ 課堂表現 (違規 ${totalBehaviorCount} 次)：`;
+            if (detailedBehaviors.length > 0) { msg += `\n`; detailedBehaviors.forEach(item => { msg += `   - ${item}\n`; }); } else { msg += ` 遵守常規，表現良好 👍\n`; }
+            
+            msg += `\n再請您關心孩子的學習狀況，謝謝您的配合！`; 
+            
+            if (returnOnly) return msg;
+            setFinalReportText(msg);
+          };
+          
+          const handleLineShare = (text) => window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, '_blank');
+          const copyToClipboard = (text) => navigator.clipboard.writeText(text).then(() => alert('已複製訊息！請直接貼上。'));
+
+          // --- Views ---
+          const renderManual = () => ( 
+            <div className="pb-24 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300"> 
+                <div className="doodle-card p-5 bg-orange-soft"><h3 className="text-2xl font-bold mb-3 flex items-center gap-2 border-b-2 border-coffee pb-2"><Icon name="Download" className="w-7 h-7"/> 如何安裝 (加入主畫面)</h3><p className="mb-4 font-bold text-coffee opacity-80">務必將此網頁【加入主畫面】，即可像 App 一樣全螢幕使用，且資料更安全！</p><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div className="bg-white p-4 rounded-xl border-2 border-dashed border-coffee"><h4 className="font-bold text-xl mb-2 flex items-center gap-2"><Icon name="Share" className="w-5 h-5"/> iPhone (Safari)</h4><ol className="list-decimal pl-5 space-y-1"><li>點選下方選單中間的「分享」圖示。</li><li>往下滑動選單。</li><li>選擇 <span className="marker-highlight px-1">「加入主畫面」</span>。</li></ol></div><div className="bg-white p-4 rounded-xl border-2 border-dashed border-coffee"><h4 className="font-bold text-xl mb-2 flex items-center gap-2"><Icon name="MoreVertical" className="w-5 h-5"/> Android (Chrome)</h4><ol className="list-decimal pl-5 space-y-1"><li>點選右上角的「三個點」選單。</li><li>選擇 <span className="marker-highlight px-1">「加到主畫面」</span>。</li></ol></div></div></div> 
+                <div className="doodle-card p-5 bg-white"><h3 className="text-2xl font-bold mb-4 flex items-center gap-2 border-b-2 border-coffee pb-2"><Icon name="LayoutGrid" className="w-7 h-7"/> 功能導覽</h3><div className="space-y-4">{[{icon: 'UserCog', label: '設定', desc: '第一次請先來這！匯入學生名單、管理科目。', color: 'bg-red-alert'}, {icon: 'User', label: '點名', desc: '每日例行。紀錄遲到、請假、作業缺交。', color: 'bg-mint'}, {icon: 'Edit3', label: '紀錄', desc: '課堂違規追蹤。使用選單切換節次，快速登記。', color: 'bg-yellow'}, {icon: 'List', label: '日誌', desc: '自動彙整今日紀錄，可匯出今日 Excel。', color: 'bg-pink'}, {icon: 'FileSpreadsheet', label: '報表', desc: '下載【全班週報表】與產生【個別家長通知】。', color: 'bg-blue-soft'}].map((item, idx) => (<div key={idx} className="flex items-start gap-3"><div className={`w-12 h-12 rounded-full ${item.color} flex items-center justify-center shrink-0 border-2 border-coffee`}><div className="text-white"><Icon name={item.icon} className="w-6 h-6"/></div></div><div><h4 className="font-bold text-xl">{item.label}</h4><p className="text-base opacity-70 leading-snug">{item.desc}</p></div></div>))}</div></div> 
+                <div className="doodle-card p-5 bg-white"><h3 className="text-2xl font-bold mb-3 flex items-center gap-2 border-b-2 border-coffee pb-2"><Icon name="Info" className="w-7 h-7"/> 常見問題</h3><ul className="list-disc pl-5 space-y-3"><li><span className="font-bold">資料存在哪？</span><br/>存在手機瀏覽器裡！不會上傳雲端，隱私安全。</li><li><span className="font-bold">換手機資料還在嗎？</span><br/>不在喔！建議每週五使用「報表」功能匯出 Excel 備份。</li></ul></div> <div className="text-center opacity-60 text-sm">Designed with ❤️ for Teachers</div> 
+            </div> 
+          );
+          
+          const renderSettings = () => ( 
+            <div className="pb-24 space-y-8"> 
+              <button onClick={() => setActiveTab('manual')} className="w-full btn-3d bg-blue-soft py-4 text-coffee flex items-center justify-center gap-3 text-xl"><Icon name="BookOpen" className="w-7 h-7" /> 📖 查看使用說明書</button> 
+
+              {/* 資料管理區 */}
+              <div className="doodle-card p-5 bg-white border-4 border-red-100">
+                  <h3 className="text-2xl font-bold mb-4 flex items-center gap-2 border-b-2 border-coffee pb-3">
+                      <Icon name="Save" className="w-8 h-8 text-red-500"/> 資料備份與管理
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <button onClick={handleBackupData} className="btn-3d bg-green-500 text-white py-3 px-4 flex items-center justify-center gap-2 text-lg">
+                          <Icon name="Download" className="w-6 h-6"/> 備份資料 (下載)
+                      </button>
+                      <button onClick={() => backupInputRef.current.click()} className="btn-3d bg-blue-500 text-white py-3 px-4 flex items-center justify-center gap-2 text-lg">
+                          <Icon name="RefreshCw" className="w-6 h-6"/> 還原資料 (上傳)
+                      </button>
+                      <input type="file" ref={backupInputRef} onChange={handleRestoreData} style={{display:'none'}} accept=".json" />
+                      
+                      <button onClick={handleResetData} className="btn-3d bg-red-500 text-white py-3 px-4 flex items-center justify-center gap-2 text-lg md:col-span-2 mt-2 border-red-800">
+                          <Icon name="Trash" className="w-6 h-6"/> 重置所有資料 (清除)
+                      </button>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2 text-center">重置前請務必先備份！</p>
+              </div>
+
+              <div className="doodle-card p-5 bg-white"><h3 className="text-2xl font-bold mb-4 flex items-center gap-2 border-b-2 border-coffee pb-3"><Icon name="UserCog" className="w-8 h-8"/> 學生名單管理</h3>
+                <div className="mb-6">
+                  <label className="text-lg font-bold opacity-70 mb-2 block">匯入名單 (Excel / Word / 圖片辨識)</label>
+                  <div className="flex gap-2 mb-3">
+                    <input type="file" ref={fileInputRef} onChange={(e) => { if(e.target.files[0]) processFile(e.target.files[0]); }} style={{display:'none'}} accept=".xlsx,.xls,.docx,image/*" />
+                    <button onClick={() => fileInputRef.current.click()} className="btn-3d bg-white border-2 border-coffee py-2 px-4 flex items-center gap-2 text-coffee font-bold" disabled={isProcessing}>
+                      {isProcessing ? '處理中...' : <><Icon name="Upload" className="w-5 h-5"/> 📁 選擇檔案</>}
+                    </button>
+                    <button onClick={() => fileInputRef.current.click()} className="btn-3d bg-white border-2 border-coffee py-2 px-4 flex items-center gap-2 text-coffee font-bold md:hidden">
+                       <Icon name="Camera" className="w-5 h-5"/> 拍照
+                    </button>
+                  </div>
+                  <textarea className="input-hand h-40 text-lg" placeholder="解析結果會出現在這，您也可以直接貼上...&#10;王小明&#10;李大同" value={bulkNamesInput} onChange={(e) => setBulkNamesInput(e.target.value)} />
+                  <button onClick={handleBulkImportNames} className="mt-4 w-full btn-3d bg-yellow py-3 text-coffee text-xl"><Icon name="Download" className="w-6 h-6 mr-2"/> 匯入名單</button>
+                </div>
+                {/* 學生名單 grid-cols-2 */}
+                <div className="max-h-60 overflow-y-auto border-t-2 border-coffee pt-4 grid grid-cols-2 gap-3">
+                  {students.map(s => (
+                    <div key={s.id} className="flex items-center gap-1">
+                      <span className="font-bold w-8 text-lg shrink-0">#{s.id}</span>
+                      <input type="text" value={s.name} onChange={(e) => handleUpdateStudentName(s.id, e.target.value)} className="input-hand py-2 text-lg w-full" />
+                    </div>
+                  ))}
+                </div>
+              </div> 
+              
+              <div className="doodle-card p-5 bg-white"><h3 className="text-2xl font-bold mb-4 flex items-center gap-2 border-b-2 border-coffee pb-3"><Icon name="BookOpen" className="w-8 h-8"/> 科目管理</h3>
+                  <div className="flex gap-2 mb-4">
+                      <input type="text" value={newSubjectName} onChange={e => setNewSubjectName(e.target.value)} className="input-hand text-lg" placeholder="輸入新科目名稱..." />
+                      <button onClick={handleAddSubject} className="btn-3d bg-coffee text-white px-4 shrink-0 flex items-center gap-1"><Icon name="Plus" className="w-5 h-5"/><span>新增</span></button>
+                  </div>
+                  <div className="flex flex-wrap gap-3">{subjects.map(s => (
+                      <button key={s.id} onClick={(e) => { e.stopPropagation(); }} className="bg-gray-100 border-2 border-coffee px-3 py-2 rounded-full text-lg flex items-center gap-2 cursor-default">
+                          {s.label}
+                          <span onClick={(e) => handleDeleteSubject(s.id, e)} className="ml-2 text-gray-400 hover:text-red-500 cursor-pointer p-1">
+                              <Icon name="X" className="w-5 h-5"/>
+                          </span>
+                      </button>
+                  ))}</div>
+              </div> 
+            </div> 
+          );
+          
+          const renderBasicInfo = () => ( 
+            <div className="space-y-6 pb-24"> 
+              <div className="doodle-card p-5 bg-white"> 
+                <div className="flex flex-col md:flex-row gap-4 items-stretch"> 
+                  <div className="flex-1"> 
+                    <label className="text-lg font-bold opacity-70 block mb-1">📅 日期 (台灣時間)</label> 
+                    <input type="date" value={currentDate} onChange={e => setCurrentDate(e.target.value)} className="input-hand text-2xl h-16 w-full" /> 
+                  </div> 
+                  <div className="flex gap-4 flex-1">
+                    <div className="w-1/2"> 
+                        <label className="text-lg font-bold opacity-70 block mb-1">🗓️ 週次</label> 
+                        <select value={week} onChange={e => setWeek(e.target.value)} className="input-hand text-center text-2xl h-16 bg-white w-full"> 
+                        {Array.from({length: 22}, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)} 
+                        </select> 
+                    </div> 
+                    <div className="w-1/2"> 
+                        <label className="text-lg font-bold opacity-70 block mb-1">🎓 值日生</label> 
+                        <select value={dutyStudent} onChange={e => setDutyStudent(e.target.value)} className="input-hand text-2xl h-16 bg-white w-full"> 
+                        {Array.from({length: 35}, (_, i) => i + 1).map(n => <option key={n} value={n}>{n} 號</option>)} 
+                        </select> 
+                    </div> 
+                  </div>
+                </div> 
+              </div> 
+              
+              <div className="doodle-card p-5 bg-white relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-4 bg-mint border-b-2 border-coffee"></div><h3 className="text-2xl font-bold mb-5 mt-3 flex items-center gap-2"><Icon name="Clock" className="w-7 h-7" /> 到校狀況</h3><div className="grid grid-cols-2 md:grid-cols-3 gap-4">{ATTENDANCE_TYPES.map(type => { const count = attendanceData[type.id]?.length || 0; return <button key={type.id} onClick={() => handleAttendanceClick(type.id)} className={`btn-3d p-3 flex items-center justify-between px-4 ${type.color} h-20`}><div className="flex items-center gap-2"><Icon name={type.icon} className="w-8 h-8" /><span className="text-2xl font-bold">{type.label}</span></div>{count > 0 && <span className="bg-coffee text-white text-xl px-3 py-1 rounded-full font-bold">{count}</span>}</button> })}</div></div> <div className="doodle-card p-5 bg-white relative overflow-hidden"> <div className="absolute top-0 left-0 w-full h-4 bg-yellow border-b-2 border-coffee"></div> <h3 className="text-2xl font-bold mb-5 mt-3 flex items-center gap-2"><Icon name="FileWarning" className="w-7 h-7" /> 作業與聯絡簿</h3> 
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                  {CONTACT_BOOK_TYPES.map(item => (
+                      <button key={item.id} onClick={() => openSelector('missing', item.id)} className={`btn-3d flex flex-col items-center justify-center p-2 h-32 ${item.color} relative`}>
+                          <Icon name={item.icon} className="w-10 h-10 mb-2"/>
+                          <span className="text-xl font-bold text-center leading-tight w-full break-words px-1">{item.label}</span>
+                          {missingData[item.id]?.length > 0 && <span className="absolute top-[-5px] right-[-5px] w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center border-2 border-coffee text-sm font-bold z-10">{missingData[item.id].length}</span>}
+                      </button>
+                  ))}
+              </div> 
+              <div className="border-t-2 border-coffee pt-4 space-y-4"> <div className="flex justify-between items-center"><h4 className="font-bold text-coffee opacity-80 text-lg">各科作業缺交</h4><button onClick={() => setIsAddingSubject(!isAddingSubject)} className="text-sm bg-mint px-3 py-1 rounded-full border-2 border-coffee hover:bg-green-200"><Icon name="Plus" className="w-4 h-4" /></button></div> {isAddingSubject && <div className="flex gap-2"><input autoFocus type="text" value={newSubjectName} onChange={e => setNewSubjectName(e.target.value)} className="input-hand text-lg py-2" /><button onClick={handleAddSubject} className="btn-3d px-4 bg-coffee text-white text-lg">OK</button></div>} {subjects.length > 0 ? ( <div className="space-y-3"> <div className="flex gap-2"> <select value={currentSubjectId} onChange={(e) => setCurrentSubjectId(e.target.value)} className="input-hand text-2xl flex-1 bg-gray-50 font-bold border-2 border-coffee h-[70px]">{subjects.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select> <button onClick={(e) => handleDeleteSubject(currentSubjectId, e)} className="btn-3d bg-pink text-white px-3"><Icon name="Trash2" className="w-6 h-6"/></button> </div> <button onClick={() => openSelector('missing', currentSubjectId)} className="btn-3d w-full bg-white py-4 text-lg flex justify-between px-5 border-2 border-coffee shadow-sm group active:bg-yellow"><span className="font-bold flex items-center gap-2"><Icon name="Edit3" className="w-6 h-6"/> <span className="text-2xl">登記 {subjects.find(s=>s.id===currentSubjectId)?.label} 缺交</span></span>{missingData[currentSubjectId]?.length > 0 ? <span className="bg-pink text-white px-3 py-1 rounded-full text-lg font-bold">{missingData[currentSubjectId].length} 人</span> : <span className="text-gray-400 text-sm">點擊登記</span>}</button> </div> ) : <div className="text-center text-gray-400 py-2">請先新增科目...</div>} <div className="flex flex-wrap gap-2 mt-2">{subjects.map(s => { const count = missingData[s.id]?.length || 0; if (count === 0) return null; return ( <button key={s.id} onClick={() => { setCurrentSubjectId(s.id); openSelector('missing', s.id); }} className="bg-white border-2 border-coffee px-3 py-2 rounded-full text-base font-bold flex items-center gap-2 shadow-sm hover:bg-gray-50">{s.label} <span className="bg-pink text-white px-2 rounded-full text-sm">{count}</span></button> ) })}</div> </div> </div> </div> 
+          );
+
+          const renderLog = () => (
+            <div className="space-y-5 pb-24">
+              <div className="doodle-card p-4 bg-white flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="font-bold text-coffee text-lg shrink-0">選擇時段：</label>
+                  <select value={currentLogPeriod} onChange={(e) => setCurrentLogPeriod(e.target.value)} className="input-hand text-xl font-bold bg-yellow border-2 border-coffee py-2 flex-1 h-20">
+                    {PERIODS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                  </select>
+                </div>
+                <div className="relative">
+                  <input type="text" value={periodNotes[currentLogPeriod] || ''} onChange={(e) => updatePeriodNote(e.target.value)} placeholder={`在此輸入${PERIODS.find(p=>p.id===currentLogPeriod)?.label}的備註...`} className="input-hand text-base bg-gray-50 pr-10 h-12" />
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"><Icon name="PenTool" className="w-5 h-5"/></span>
+                </div>
+              </div>
+              <div className="flex justify-between items-center px-1">
+                <h4 className="font-bold text-coffee opacity-80 text-lg">違規項目</h4>
+                <button onClick={() => setIsEditingBehaviors(!isEditingBehaviors)} className={`px-3 py-1 rounded-full border-2 border-coffee text-sm font-bold flex items-center gap-1 ${isEditingBehaviors ? 'bg-pink text-white' : 'bg-gray-100'}`}><Icon name="Settings" className="w-4 h-4" /> {isEditingBehaviors ? '完成' : '編輯'}</button>
+              </div>
+              {isEditingBehaviors && <div className="doodle-card p-4 bg-yellow flex gap-3"><input type="text" value={newBehaviorName} onChange={e => setNewBehaviorName(e.target.value)} placeholder="新違規項目..." className="input-hand text-lg" /><button onClick={handleAddBehavior} className="btn-3d bg-coffee text-white px-4 shrink-0 flex items-center gap-1"><Icon name="Plus" className="w-5 h-5"/><span>新增</span></button></div>}
+              
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {behaviors.map(behavior => {
+                  const count = classLogData[currentLogPeriod]?.[behavior.id]?.length || 0;
+                  return (
+                    <button key={behavior.id} onClick={() => handleBehaviorClick(behavior.id)} className={`btn-3d p-2 flex flex-col items-center gap-1 ${behavior.color} min-h-[120px] relative`}>
+                      {isEditingBehaviors && <span onClick={(e) => handleDeleteBehavior(behavior.id, e)} className="absolute top-1 right-1 bg-white rounded-full p-1 border border-coffee text-red-500 z-20"><Icon name="X" className="w-4 h-4" strokeWidth={3} /></span>}
+                      <Icon name={behavior.icon} className="w-10 h-10" />
+                      <span className="text-xl font-bold text-center leading-tight mt-1">{behavior.label}</span>
+                      {!isEditingBehaviors && count > 0 && <span className="absolute top-[-5px] right-[-5px] w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center border-2 border-coffee text-sm font-bold z-10">{count}</span>}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="mt-2 p-4 bg-white border-2 border-coffee rounded-2xl shadow-sm min-h-[80px]">
+                <p className="font-bold opacity-60 mb-2 text-sm border-b-2 border-coffee border-dashed pb-1 flex justify-between">
+                  <span>{PERIODS.find(p=>p.id===currentLogPeriod)?.label} 已紀錄：</span>
+                  {(!classLogData[currentLogPeriod] || Object.values(classLogData[currentLogPeriod]).every(arr => arr.length === 0)) && !periodNotes[currentLogPeriod] && <span className="text-gray-400 font-normal">尚無資料</span>}
+                </p>
+                {behaviors.map(b => { 
+                    const list = classLogData[currentLogPeriod]?.[b.id]; 
+                    if(!list || list.length===0) return null; 
+                    return ( 
+                        <div key={b.id} className="flex gap-2 mb-1 text-lg">
+                            <span className="font-bold text-coffee shrink-0">{b.label}:</span>
+                            <span className="text-gray-700">{list.map(id => students.find(s=>s.id===id)?.name || id).join('、')}</span>
+                        </div> 
+                    )
+                })}
+                {periodNotes[currentLogPeriod] && (<div className="flex gap-2 mt-2 text-lg text-blue-600 bg-blue-50 p-2 rounded-lg"><span className="font-bold shrink-0 flex items-center"><Icon name="PenTool" className="w-4 h-4 mr-1"/>備註:</span><span>{periodNotes[currentLogPeriod]}</span></div>)}
+              </div>
+              <div className="doodle-card p-5 bg-white mt-8"><h3 className="text-2xl font-bold mb-3 flex items-center gap-2"><Icon name="MessageCircle" className="w-7 h-7" /> 全日偶發/總結</h3><textarea value={incidentLog} onChange={(e) => setIncidentLog(e.target.value)} className="w-full h-32 p-4 border-2 border-coffee rounded-xl outline-none font-bold resize-none bg-gray-50 text-lg" placeholder="今日其他補充..." /></div>
+            </div>
+          );
+
+          const renderReview = () => {
+            const dailyStudentViolations = getDailyStudentViolations();
+            const hasViolations = Object.keys(dailyStudentViolations).length > 0;
+
+            return (
+              <div className="pb-24 space-y-5">
+                 {/* New Date Picker Section */}
+                <div className="doodle-card p-4 bg-white flex flex-col md:flex-row justify-between items-center gap-4">
+                     <div className="flex items-center gap-2 w-full md:w-auto">
+                        <label className="font-bold text-coffee text-lg shrink-0">選擇日期：</label>
+                        <input 
+                            type="date" 
+                            value={currentDate} 
+                            onChange={(e) => setCurrentDate(e.target.value)} 
+                            className="input-hand text-xl font-bold bg-yellow-50 border-2 border-coffee py-2 flex-grow md:flex-none" 
+                        />
+                     </div>
+                     <button onClick={exportDailyLog} className="btn-3d bg-yellow px-5 py-2 flex items-center gap-2 text-coffee font-bold text-lg whitespace-nowrap w-full md:w-auto justify-center">
+                        <Icon name="FileSpreadsheet" className="w-6 h-6"/> 匯出日誌
+                     </button>
+                </div>
+                
+                <div className="bg-white border-2 border-coffee p-6 min-h-[500px] text-base font-mono shadow-xl relative leading-relaxed">
+                  <h2 className="text-center text-2xl font-bold mb-6 border-b-2 border-coffee pb-3">{week || '____'}週 班級日誌 ({currentDate})</h2>
+                  <div className="mb-6 grid grid-cols-2 gap-4 text-lg"><div>值日生: {dutyStudent}號</div></div>
+                  
+                  <div className="mb-6 border border-coffee p-3"><h3 className="font-bold mb-2 bg-gray-200 p-2 text-lg">缺勤</h3>{ATTENDANCE_TYPES.map(t => attendanceData[t.id]?.length > 0 && <div key={t.id} className="py-2 border-b border-dashed text-lg"><b>{t.label}:</b> {attendanceData[t.id].map(id=>students.find(s=>s.id===id)?.name || id).join('、')}</div>)}</div>
+                  
+                  <div className="mb-6 border border-coffee p-3"><h3 className="font-bold mb-2 bg-gray-200 p-2 text-lg">缺交</h3>{CONTACT_BOOK_TYPES.map(t => missingData[t.id]?.length > 0 && <div key={t.id} className="py-2 border-b border-dashed text-lg"><b>{t.label}:</b> {missingData[t.id].map(id=>students.find(s=>s.id===id)?.name || id).join('、')}</div>)}{subjects.map(s => missingData[s.id]?.length > 0 && <div key={s.id} className="py-2 border-b border-dashed text-lg"><b>{s.label}:</b> {missingData[s.id].map(id=>students.find(s=>s.id===id)?.name || id).join('、')}</div>)}</div>
+                  
+                  <div className="mb-6 border border-coffee">
+                    <h3 className="font-bold bg-red-100 p-2 border-b border-coffee text-lg text-red-800 flex items-center gap-2"><Icon name="AlertTriangle" className="w-5 h-5"/> 今日違規統計 (按學生)</h3>
+                    <div className="p-3 space-y-2">
+                      {hasViolations ? (
+                        Object.entries(dailyStudentViolations).map(([studentId, violations]) => {
+                          const student = students.find(s => s.id === Number(studentId));
+                          return (
+                            <div key={studentId} className="border-b border-dashed last:border-0 pb-1">
+                              <span className="font-bold text-lg text-coffee mr-2">{student?.name || `${studentId}號`}:</span>
+                              <span className="text-gray-700">{violations.join('、')}</span>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="text-center text-gray-400 py-2">今日無課堂違規紀錄 👍</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mb-6 border border-coffee"><h3 className="font-bold bg-gray-200 p-2 border-b border-coffee text-lg">課堂異常明細 & 備註</h3>{PERIODS.map(p => { 
+                      const logs=classLogData[p.id]; 
+                      const note=periodNotes[p.id]; 
+                      const hasLogs = logs && Object.keys(logs).some(k=>logs[k].length>0); 
+                      if(!hasLogs && !note) return null; 
+                      return ( 
+                        <div key={p.id} className="p-3 border-b border-coffee last:border-0">
+                            <div className="font-bold text-coffee mb-1 text-lg">{p.label}</div>
+                            {hasLogs && behaviors.map(b => logs[b.id]?.length > 0 && <div key={b.id} className="pl-4 flex text-lg"><span className="w-32 text-gray-600">- {b.label}:</span><span>{logs[b.id].map(id=>students.find(s=>s.id===id)?.name || id).join('、')}</span></div>)}
+                            {note && <div className="pl-4 text-lg text-blue-600 mt-1">備註: {note}</div>}
+                        </div> 
+                      ) 
+                  })}</div>
+                  <div className="border border-coffee p-3 min-h-[120px]"><h3 className="font-bold mb-2 bg-gray-200 p-2 text-lg">全日偶發</h3><p className="text-lg">{incidentLog}</p></div>
+                </div>
+              </div>
+            );
+          };
+
+          const renderReports = () => {
+            const s = students.find(stud => stud.id === selectedStudentReport);
+            const hasStudent = !!s;
+            const statsData = hasStudent ? getWeeklyStats(selectedStudentReport) : { stats: { attendance: {}, missing: {}, behavior: {}, contactBook: {}, homework: {} }, detailedBehaviors: [], detailedAttendance: [], detailedMissing: [], detailedContactBook: [], detailedHomework: [] };
+
+            return (
+              <div className="pb-24 space-y-6">
+                 <div className="doodle-card p-4 bg-white border-4 border-blue-soft"><h3 className="font-bold mb-2 text-xl flex items-center gap-2 text-blue-600"><Icon name="Megaphone" className="w-6 h-6"/> 注意事項 (所有學生都會看到)</h3><textarea value={teacherNote} onChange={(e) => setTeacherNote(e.target.value)} className="w-full h-24 p-3 border-2 border-blue-200 rounded-xl outline-none text-lg bg-blue-50" placeholder="例如：明天記得穿班服、下週一期中考..."/></div>
+                 
+                 <div className="doodle-card p-5 bg-yellow flex items-center justify-between"><div className="flex items-center gap-3"><Icon name="User" className="w-9 h-9" /><div><div className="text-sm opacity-60 font-bold">查看學生</div><select value={selectedStudentReport} onChange={(e) => setSelectedStudentReport(Number(e.target.value))} className="bg-transparent text-2xl font-bold outline-none border-b-2 border-coffee min-w-[140px] py-1">{students.map(s => <option key={s.id} value={s.id}>{s.id}. {s.name}</option>)}</select></div></div><div className="text-right text-sm font-bold opacity-60">統計範圍<br/>過去 5 天</div></div>
+                 
+                 {hasStudent ? (
+                     <>
+                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                             <div className="doodle-card p-3 bg-white flex flex-col items-center justify-center min-h-[90px]">
+                                 <div className="text-3xl font-bold text-coffee">{Object.values(statsData.stats.attendance).reduce((a,b)=>a+b, 0)}</div>
+                                 <div className="text-xs font-bold opacity-60 mt-1">本週缺勤</div>
+                             </div>
+                             <div className="doodle-card p-3 bg-white flex flex-col items-center justify-center min-h-[90px]">
+                                 <div className="text-3xl font-bold text-mint-600" style={{color: '#059669'}}>{Object.values(statsData.stats.contactBook).reduce((a,b)=>a+b, 0)}</div>
+                                 <div className="text-xs font-bold opacity-60 mt-1">聯絡簿</div>
+                             </div>
+                             <div className="doodle-card p-3 bg-white flex flex-col items-center justify-center min-h-[90px]">
+                                 <div className="text-3xl font-bold text-pink-500">{Object.values(statsData.stats.homework).reduce((a,b)=>a+b, 0)}</div>
+                                 <div className="text-xs font-bold opacity-60 mt-1">作業缺交</div>
+                             </div>
+                             <div className="doodle-card p-3 bg-white flex flex-col items-center justify-center min-h-[90px]">
+                                 <div className="text-3xl font-bold text-red-500">{Object.values(statsData.stats.behavior).reduce((a,b)=>a+b, 0)}</div>
+                                 <div className="text-xs font-bold opacity-60 mt-1">課堂違規</div>
+                             </div>
+                         </div>
+                         
+                         <div className="space-y-4">
+                           <div className="relative">
+                               <textarea 
+                                   className="input-hand w-full h-80 p-4 text-lg leading-relaxed shadow-inner resize-none" 
+                                   value={finalReportText} 
+                                   onChange={(e) => setFinalReportText(e.target.value)}
+                               />
+                           </div>
+
+                           <div className="flex gap-3 items-stretch">
+                             <button onClick={() => handleLineShare(finalReportText)} className="flex-[3] btn-3d bg-line py-4 text-xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+                               <Icon name="Send" className="w-6 h-6" /> 傳送/複製訊息給家長
+                             </button>
+                             <button onClick={() => copyToClipboard(finalReportText)} className="flex-1 btn-3d bg-mint py-4 flex flex-col items-center justify-center gap-1 text-xs opacity-80" title="僅複製文字">
+                               <Icon name="ClipboardCopy" className="w-6 h-6" /> <span>複製</span>
+                             </button>
+                             <button onClick={exportStudentWeekly} className="flex-1 btn-3d bg-gray-100 py-4 flex flex-col items-center justify-center gap-1 text-xs opacity-80" title="下載 Excel">
+                               <Icon name="Download" className="w-6 h-6" /> <span>下載</span>
+                             </button>
+                           </div>
+                         </div>
+                     </>
+                 ) : (
+                     <div className="p-8 text-center text-gray-500 font-bold text-xl mt-10">請先從上方選單選擇一位學生</div>
+                 )}
+                 
+                 <div className="pt-4 border-t-4 border-dashed border-coffee opacity-60 space-y-3">
+                    <button onClick={handlePrintAllStudents} className="w-full py-3 text-coffee bg-white border-2 border-coffee rounded-xl flex items-center justify-center gap-2 font-bold hover:bg-gray-50 transition"><Icon name="Printer" className="w-5 h-5"/> 列印全班週報 (6人/頁)</button>
+                    <button onClick={exportWholeClassWeekly} className="w-full py-3 text-coffee flex items-center justify-center gap-2 font-bold hover:bg-orange-100 rounded-xl transition"><Icon name="FileSpreadsheet" className="w-5 h-5"/> 下載全班週報表 (Excel)</button>
+                 </div>
+
+                 {/* 學期/區間統計功能區塊 */}
+                 <div className="doodle-card p-5 bg-purple-soft mt-6">
+                    <h3 className="text-2xl font-bold mb-4 flex items-center gap-2 border-b-2 border-coffee pb-2 text-coffee">
+                        <Icon name="FileSpreadsheet" className="w-8 h-8"/> 學期/區間統計
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label className="font-bold opacity-70 block">開始日期</label>
+                            <input type="date" value={statsStartDate} onChange={e => setStatsStartDate(e.target.value)} className="input-hand text-lg w-full" />
+                        </div>
+                        <div>
+                            <label className="font-bold opacity-70 block">結束日期</label>
+                            <input type="date" value={statsEndDate} onChange={e => setStatsEndDate(e.target.value)} className="input-hand text-lg w-full" />
+                        </div>
+                    </div>
+                    <button onClick={handleExportIntervalStats} className="btn-3d w-full bg-coffee text-white py-3 text-xl flex items-center justify-center gap-2">
+                        <Icon name="Download" className="w-6 h-6"/> 匯出區間統計報表 (Excel)
+                    </button>
+                 </div>
+              </div>
+            );
+          };
+
+          return (
+            <div className="min-h-screen w-full max-w-4xl mx-auto relative overflow-hidden">
+              <style>{customStyles}</style>
+              <header className="pt-8 pb-3 px-6 flex justify-between items-center"><h1 className="text-4xl font-bold text-coffee tracking-wider transform -rotate-1 flex items-center gap-3"><Icon name="BookOpen" className="w-10 h-10" /> 班級小管家</h1><div className="flex gap-2"><button onClick={() => setActiveTab('manual')} className="bg-white p-2 rounded-full border-2 border-coffee shadow-sm active:scale-95 transition" title="使用說明書"><Icon name="HelpCircle" className="w-7 h-7 text-coffee"/></button><div className="bg-white p-2 rounded-full border-2 border-coffee shadow-sm flex items-center justify-center" title={saveStatus === 'saved' ? '已儲存' : '儲存中...'}>{saveStatus === 'saved' ? <Icon name="Check" className="w-7 h-7" /> : <Icon name="Loader" className="w-7 h-7" />}</div></div></header>
+              <main className="px-5 h-full pt-4">{activeTab === 'basic' && renderBasicInfo()}{activeTab === 'log' && renderLog()}{activeTab === 'review' && renderReview()}{activeTab === 'report' && renderReports()}{activeTab === 'settings' && renderSettings()}{activeTab === 'manual' && renderManual()}</main>
+              <StudentSelector 
+                  isOpen={isSelectorOpen} 
+                  onClose={() => setIsSelectorOpen(false)} 
+                  title={(() => {
+                      const { type, category, period } = selectorConfig;
+                      if (type === 'attendance') return ATTENDANCE_TYPES.find(t => t.id === category)?.label || '點名';
+                      if (type === 'missing') {
+                          const cbItem = CONTACT_BOOK_TYPES.find(t => t.id === category);
+                          const subjectItem = subjects.find(s => s.id === category);
+                          return cbItem ? cbItem.label : (subjectItem ? `${subjectItem.label}缺交` : '項目');
+                      }
+                      if (type === 'log') {
+                          const pName = PERIODS.find(p => p.id === period)?.label || period;
+                          const bName = behaviors.find(b => b.id === category)?.label || '紀錄';
+                          return `${pName} - ${bName}`;
+                      }
+                      return '';
+                  })()}
+                  students={students} 
+                  selected={getSelectedStudents()} 
+                  onToggle={toggleStudent} 
+              />
+              <nav className="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[98%] max-w-xl bg-[#FFF] border-3 border-coffee rounded-2xl shadow-[4px_4px_0px_#5D4037] flex justify-between px-3 py-3 z-40">
+                {[{ id: 'basic', icon: 'User', label: '點名', color: 'bg-mint' }, { id: 'log', icon: 'Edit3', label: '紀錄', color: 'bg-yellow' }, { id: 'review', icon: 'List', label: '日誌', color: 'bg-pink' }, { id: 'report', icon: 'FileSpreadsheet', label: '報表', color: 'bg-blue-soft' }, { id: 'settings', icon: 'Settings', label: '設定', color: 'bg-red-alert' }].map(tab => ( <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-1 flex flex-col items-center p-2 rounded-xl transition-all duration-300 ${tab.id === 'settings' ? 'nav-btn-settings ' + (activeTab === 'settings' ? 'active' : '') : (activeTab === tab.id ? `${tab.color} -translate-y-4 border-2 border-coffee shadow-sm` : 'opacity-60')}`}><div className={tab.id === 'settings' ? 'text-white' : 'text-coffee'}><Icon name={tab.icon} className="w-8 h-8"/></div><span className={`text-sm font-black mt-1 ${tab.id === 'settings' ? 'text-white' : 'text-coffee'}`}>{tab.label}</span></button> ))}
+              </nav>
+            </div>
+          );
+        }
+
+        // React 啟動邏輯
+        try {
+            const container = document.getElementById('root');
+            if(container) {
+                const root = ReactDOM.createRoot(container);
+                root.render(<ClassManagerLine />);
+            } else {
+                throw new Error("Root element not found");
+            }
+        } catch (err) {
+            console.error(err);
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('error-log').style.display = 'block';
+            document.getElementById('error-details').innerText = "啟動失敗: " + err.message;
+        }
+    </script>
+</body>
+</html>
