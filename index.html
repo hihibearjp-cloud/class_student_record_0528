@@ -11,16 +11,12 @@
     <meta name="apple-mobile-web-app-title" content="班級小管家">
     <meta name="theme-color" content="#FFD700">
     
-    <!-- 
-      ★ Apple Icon 設定 ★
-      自動將 SVG 轉為 PNG 格式以符合 iOS 主畫面圖示需求。
-    -->
+    <!-- Apple Icon 設定 -->
     <link rel="apple-touch-icon" id="ios-icon" href="">
     <link rel="icon" id="fav-icon" href="">
 
     <script>
         (function() {
-            // 黃色黑板圖示 SVG
             const svgSource = `
             <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
                 <rect width="512" height="512" rx="100" fill="#FFD700"/>
@@ -30,20 +26,16 @@
                 <path d="M360 350l40-40" stroke="#FFF" stroke-width="16" stroke-linecap="round"/>
             </svg>`;
 
-            // 將 SVG 轉換為 PNG
             function generateAppleIcon() {
                 const canvas = document.createElement('canvas');
-                canvas.width = 192; // iOS 建議尺寸
+                canvas.width = 192;
                 canvas.height = 192;
                 const ctx = canvas.getContext('2d');
-                
                 const img = new Image();
                 img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgSource)));
-                
                 img.onload = function() {
                     ctx.drawImage(img, 0, 0, 192, 192);
                     const pngData = canvas.toDataURL('image/png');
-                    
                     const iosLink = document.getElementById('ios-icon');
                     const favLink = document.getElementById('fav-icon');
                     if (iosLink) iosLink.href = pngData;
@@ -58,7 +50,6 @@
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { background-color: #FEF9F2; margin: 0; padding: 0; overscroll-behavior-y: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         
-        /* 啟動畫面 */
         #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #FEF9F2; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s; }
         
         .loader {
@@ -106,7 +97,6 @@
         </div>
     </div>
 
-    <!-- 安全啟動：3秒後強制移除遮罩 -->
     <script>
         setTimeout(function() {
             var loading = document.getElementById('loading-screen');
@@ -204,8 +194,7 @@
           { id: 'late_class', label: '晚進教室', icon: 'Clock', color: 'bg-yellow' },
           { id: 'rude', label: '未盡職守', icon: 'MicOff', color: 'bg-pink' },
           { id: 'noise', label: '吵鬧干擾', icon: 'AlertCircle', color: 'bg-pink' },
-          { id: 'chat', label: '聊天', icon: 'MessageCircle', color: 'bg-yellow' },
-          { id: 'note', label: '傳紙條', icon: 'FileWarning', color: 'bg-yellow' },
+          { id: 'chat', label: '上課聊天', icon: 'MessageCircle', color: 'bg-yellow' },
           { id: 'other_book', label: '看課外書', icon: 'BookOpen', color: 'bg-yellow' },
           { id: 'sleep', label: '打瞌睡', icon: 'Coffee', color: 'bg-pink' },
           { id: 'no_hw_cls', label: '作業未交', icon: 'FileWarning', color: 'bg-pink' },
@@ -233,7 +222,7 @@
           { id: 'science', label: '理化' }, { id: 'civics', label: '公民' }, { id: 'history', label: '歷史' }, { id: 'geo', label: '地理' },
         ];
 
-        // 獨立組件 - 學生選單 (防回彈核心：type="button" + e.preventDefault + React.memo)
+        // 獨立組件 - 學生選單
         const StudentSelector = memo(({ isOpen, onClose, title, students, selected, onToggle }) => {
             if (!isOpen) return null;
             return (
@@ -268,7 +257,11 @@
           const [statsStartDate, setStatsStartDate] = useState('');
           const [statsEndDate, setStatsEndDate] = useState('');
           
-          // 在組件掛載後，移除 Loading Screen
+          // 列印相關狀態
+          const [printMode, setPrintMode] = useState('default');
+          const [printCustomStart, setPrintCustomStart] = useState('');
+          const [printCustomEnd, setPrintCustomEnd] = useState('');
+          
           useEffect(() => {
               const loading = document.getElementById('loading-screen');
               if(loading) {
@@ -334,7 +327,6 @@
             setAttendanceNotes(dayData.attendanceNotes || {}); 
           }, [currentDate, allData]); 
 
-          // 儲存邏輯 (含狀態顯示)
           useEffect(() => {
             setSaveStatus('saving');
             const timer = setTimeout(() => {
@@ -360,9 +352,7 @@
           }, [selectedStudentReport, teacherNote, allData]); 
 
           const handleUpdateStudentName = (id, newName) => {
-              setStudents(prev => prev.map(s => 
-                  s.id === id ? { ...s, name: newName } : s
-              ));
+              setStudents(prev => prev.map(s => s.id === id ? { ...s, name: newName } : s));
           };
 
           const processFile = (file) => {
@@ -520,9 +510,25 @@
             link.click();
           };
 
-          const getWeeklyStats = (studentId) => {
-            const dates = []; const today = new Date(currentDate); 
-            for (let i = 0; i < 5; i++) { const d = new Date(today); d.setDate(today.getDate() - i); dates.push(d.toISOString().split('T')[0]); }
+          // 支援日期區間的統計函數
+          const getWeeklyStats = (studentId, customStart = null, customEnd = null) => {
+            let dates = [];
+            if (customStart && customEnd) {
+                // 自訂區間：由新到舊
+                const s = new Date(customStart);
+                const e = new Date(customEnd);
+                for (let d = new Date(e); d >= s; d.setDate(d.getDate() - 1)) {
+                     dates.push(d.toISOString().split('T')[0]);
+                }
+            } else {
+                // 預設5天
+                const today = new Date(currentDate); 
+                for (let i = 0; i < 5; i++) { 
+                    const d = new Date(today); 
+                    d.setDate(today.getDate() - i); 
+                    dates.push(d.toISOString().split('T')[0]); 
+                }
+            }
             
             let stats = { attendance: {}, missing: {}, behavior: {}, contactBook: {}, homework: {} }; 
             let detailedBehaviors = [];
@@ -746,6 +752,11 @@
           };
 
           const handlePrintAllStudents = () => {
+            if (printMode === 'custom' && (!printCustomStart || !printCustomEnd)) {
+                alert('請選擇完整的開始與結束日期');
+                return;
+            }
+
             const printWindow = window.open('', '', 'width=800,height=600');
             let html = '<html><head><title>全班個別週報表</title>';
             html += '<style>';
@@ -764,7 +775,12 @@
             chunks.forEach(chunk => {
                 html += '<div class="page">';
                 chunk.forEach(student => {
-                    let msg = generateParentMessage(student.id, true);
+                    let msg = generateParentMessage(
+                        student.id, 
+                        true,
+                        printMode === 'custom' ? printCustomStart : null,
+                        printMode === 'custom' ? printCustomEnd : null
+                    );
                     msg = msg.replace('📢 注意事項：', '<b><u>📢 注意事項：</u></b>');
                     html += `<div class="card">
                         <div class="msg-content content-overflow">${msg}</div>
@@ -782,12 +798,12 @@
 
           const exportStudentWeekly = () => { const s = students.find(s => s.id === selectedStudentReport); if(!s) return alert('請先選擇學生'); const { dates, stats } = getWeeklyStats(selectedStudentReport); let csv = `學生個別週報表\n座號,${s.id}\n姓名,${s.name}\n統計範圍,${dates[dates.length-1]} ~ ${dates[0]}\n\n類別,項目,次數\n`; Object.entries(stats.attendance).forEach(([k, v]) => csv += `缺勤,${ATTENDANCE_TYPES.find(t=>t.id===k)?.label||k},${v}\n`); Object.entries(stats.missing).forEach(([k, v]) => csv += `缺交,${k},${v}\n`); Object.entries(stats.behavior).forEach(([k, v]) => csv += `違規,${k},${v}\n`); downloadCSV(csv, `${s.name}_週報表.csv`); };
           
-          const generateParentMessage = (studentId, returnOnly = false) => { 
+          const generateParentMessage = (studentId, returnOnly = false, customStart = null, customEnd = null) => { 
             const s = students.find(stud => stud.id === studentId); 
             if (!s) return "請先選擇學生..."; 
             
-            const { dates, stats, detailedBehaviors, detailedAttendance, detailedMissing, detailedContactBook, detailedHomework } = getWeeklyStats(studentId); 
-            const dateRange = `${dates[dates.length-1].slice(5).replace('-','/')} ~ ${dates[0].slice(5).replace('-','/')}`; 
+            const { dates, stats, detailedBehaviors, detailedAttendance, detailedMissing, detailedContactBook, detailedHomework } = getWeeklyStats(studentId, customStart, customEnd); 
+            const dateRange = dates.length > 0 ? `${dates[dates.length-1].slice(5).replace('-','/')} ~ ${dates[0].slice(5).replace('-','/')}` : '無資料'; 
             
             let msg = ""; 
             if (teacherNote.trim()) msg += `📢 注意事項：\n${teacherNote}\n\n------------------------------\n\n`; 
@@ -1115,15 +1131,50 @@
                      <div className="p-8 text-center text-gray-500 font-bold text-xl mt-10">請先從上方選單選擇一位學生</div>
                  )}
                  
-                 <div className="pt-4 border-t-4 border-dashed border-coffee opacity-60 space-y-3">
-                    <button onClick={handlePrintAllStudents} className="w-full py-3 text-coffee bg-white border-2 border-coffee rounded-xl flex items-center justify-center gap-2 font-bold hover:bg-gray-50 transition"><Icon name="Printer" className="w-5 h-5"/> 列印全班週報 (6人/頁)</button>
-                    <button onClick={exportWholeClassWeekly} className="w-full py-3 text-coffee flex items-center justify-center gap-2 font-bold hover:bg-orange-100 rounded-xl transition"><Icon name="FileSpreadsheet" className="w-5 h-5"/> 下載全班週報表 (Excel)</button>
+                 {/* 批次報表列印區塊 (新增日期區間選擇) */}
+                 <div className="doodle-card p-5 bg-white mt-6">
+                    <h3 className="text-2xl font-bold mb-4 flex items-center gap-2 border-b-2 border-coffee pb-2 text-coffee">
+                        <Icon name="Printer" className="w-8 h-8"/> 批次列印 / 匯出報表
+                    </h3>
+                    
+                    <div className="flex gap-4 mb-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="printMode" checked={printMode === 'default'} onChange={() => setPrintMode('default')} className="w-5 h-5 accent-coffee" />
+                            <span className="font-bold text-lg">預設 (過去5天)</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="printMode" checked={printMode === 'custom'} onChange={() => setPrintMode('custom')} className="w-5 h-5 accent-coffee" />
+                            <span className="font-bold text-lg">自訂區間</span>
+                        </label>
+                    </div>
+
+                    {printMode === 'custom' && (
+                        <div className="grid grid-cols-2 gap-4 mb-4 bg-orange-50 p-3 rounded-xl border border-coffee">
+                            <div>
+                                <label className="font-bold opacity-70 block">開始日期</label>
+                                <input type="date" value={printCustomStart} onChange={e => setPrintCustomStart(e.target.value)} className="input-hand text-lg w-full" />
+                            </div>
+                            <div>
+                                <label className="font-bold opacity-70 block">結束日期</label>
+                                <input type="date" value={printCustomEnd} onChange={e => setPrintCustomEnd(e.target.value)} className="input-hand text-lg w-full" />
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="space-y-3">
+                        <button onClick={handlePrintAllStudents} className="w-full py-3 text-coffee bg-white border-2 border-coffee rounded-xl flex items-center justify-center gap-2 font-bold hover:bg-gray-50 transition shadow-sm">
+                            <Icon name="Printer" className="w-5 h-5"/> 列印全班週報 ({printMode === 'default' ? '預設' : '自訂'})
+                        </button>
+                        <button onClick={exportWholeClassWeekly} className="w-full py-3 text-coffee flex items-center justify-center gap-2 font-bold hover:bg-orange-100 rounded-xl transition">
+                            <Icon name="FileSpreadsheet" className="w-5 h-5"/> 下載全班週報表 Excel
+                        </button>
+                    </div>
                  </div>
 
                  {/* 學期/區間統計功能區塊 */}
                  <div className="doodle-card p-5 bg-purple-soft mt-6">
                     <h3 className="text-2xl font-bold mb-4 flex items-center gap-2 border-b-2 border-coffee pb-2 text-coffee">
-                        <Icon name="FileSpreadsheet" className="w-8 h-8"/> 學期/區間統計
+                        <Icon name="FileSpreadsheet" className="w-8 h-8"/> 學期/區間統計 (僅 Excel)
                     </h3>
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
@@ -1136,7 +1187,7 @@
                         </div>
                     </div>
                     <button onClick={handleExportIntervalStats} className="btn-3d w-full bg-coffee text-white py-3 text-xl flex items-center justify-center gap-2">
-                        <Icon name="Download" className="w-6 h-6"/> 匯出區間統計報表 (Excel)
+                        <Icon name="Download" className="w-6 h-6"/> 匯出區間統計報表
                     </button>
                  </div>
               </div>
@@ -1195,3 +1246,6 @@
     </script>
 </body>
 </html>
+
+
+
