@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -58,7 +57,8 @@
 
     <style>
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        body { background-color: #FEF9F2; margin: 0; padding: 0; overscroll-behavior-y: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        /* 移除 overscroll-behavior-y 以確保 iOS 自然滑動，維持基礎設定 */
+        body { background-color: #FEF9F2; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif; }
         
         #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #FEF9F2; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s; }
         
@@ -168,7 +168,8 @@
             Cloud: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400"><path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"/><path d="M14 13.5c0-3.59-2.91-6.5-6.5-6.5S1 9.91 1 13.5"/><path d="M23 19a5 5 0 0 0-5-5c-2.3 0-4.23 1.56-4.8 3.7"/><path d="M19 12a7 7 0 0 0-7-7c-2.8 0-5.2 1.6-6.4 4"/></svg>,
             Loader: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin text-yellow-600"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
             Calculator: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="16" y1="14" x2="16" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></svg>,
-            Smartphone: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            Smartphone: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>,
+            Crown: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="#FFD700" stroke="#B8860B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.2))'}}><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
         };
 
         const Icon = ({ name, className = "" }) => {
@@ -178,8 +179,7 @@
 
         /* --- STYLES --- */
         const customStyles = `
-          @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap');
-          body { background-color: #FEF9F2; background-image: linear-gradient(#E8E8E8 1px, transparent 1px), linear-gradient(90deg, #E8E8E8 1px, transparent 1px); background-size: 20px 20px; font-family: 'ZCOOL KuaiLe', cursive, sans-serif; color: #5D4037; font-size: 18px; }
+          body { background-color: #FEF9F2; background-image: linear-gradient(#E8E8E8 1px, transparent 1px), linear-gradient(90deg, #E8E8E8 1px, transparent 1px); background-size: 20px 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif; color: #5D4037; font-size: 18px; }
           .btn-3d { transition: all 0.1s; border: 3px solid #5D4037; box-shadow: 4px 4px 0px #5D4037; border-radius: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
           .btn-3d:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px #5D4037; }
           .nav-btn-settings { background-color: #FF5252; color: white; border: 3px solid #5D4037; box-shadow: 0px 4px 0px #3E2723; transform: translateY(-10px); z-index: 50; }
@@ -188,7 +188,7 @@
           .bg-coffee { background-color: #5D4037; color: white; }
           .text-coffee { color: #5D4037; } .border-coffee { border-color: #5D4037; }
           .doodle-card { background: white; border: 3px solid #5D4037; border-radius: 24px; box-shadow: 6px 6px 0px rgba(93, 64, 55, 0.2); }
-          .input-hand { border: 3px solid #5D4037; border-radius: 12px; padding: 12px 16px; background: #FFF; font-family: 'ZCOOL KuaiLe', cursive; outline: none; width: 100%; font-size: 1.1rem; }
+          .input-hand { border: 3px solid #5D4037; border-radius: 12px; padding: 12px 16px; background: #FFF; font-family: inherit; outline: none; width: 100%; font-size: 1.1rem; }
           .input-hand:focus { box-shadow: 3px 3px 0px #5D4037; }
           .marker-highlight { background: linear-gradient(120deg, #FDFD96 0%, #FDFD96 100%); background-repeat: no-repeat; background-size: 100% 40%; background-position: 0 80%; }
         `;
@@ -309,6 +309,16 @@
             );
         });
 
+        // 幫手函數：將 YYYY-MM-DD 轉為 5/22 的極簡格式
+        const formatShortDate = (dStr) => {
+            if (!dStr) return '';
+            const parts = dStr.split('-');
+            if (parts.length === 3) {
+                return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`;
+            }
+            return dStr;
+        };
+
         function ClassManagerLine() {
           const [activeTab, setActiveTab] = useState('basic'); 
           const [saveStatus, setSaveStatus] = useState('saved');
@@ -318,6 +328,11 @@
           const [incidentEndDate, setIncidentEndDate] = useState('');     
           const [globalCounter, setGlobalCounter] = useState(864); 
           
+          // --- 創作者模式狀態 ---
+          const [isCreator, setIsCreator] = useState(() => localStorage.getItem('classLogCreator') === 'true');
+          const titleClickCount = useRef(0);
+          const titleClickTimer = useRef(null);
+
           // --- 密碼鎖 State ---
           const [appPin, setAppPin] = useState(() => localStorage.getItem('classLogAppPin') || '');
           const [isLocked, setIsLocked] = useState(() => !!localStorage.getItem('classLogAppPin'));
@@ -346,71 +361,34 @@
               }
           }, []);
 
-          // === Firebase 雲端計數器邏輯 ===
+          // === 使用 CounterAPI 免設定計數器 ===
           useEffect(() => {
-              let isMounted = true;
-              let unsubscribe = null;
-
-              const setupFirebase = async () => {
+              const fetchCounter = async () => {
                   try {
-                      if (typeof __firebase_config === 'undefined') return;
+                      // 使用免設定的開放計數 API (CounterAPI)
+                      const namespace = 'pro-class-assistant-app-v2';
+                      const key = 'global-views';
                       
-                      const firebaseConfig = JSON.parse(__firebase_config);
-                      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                      const hasCounted = sessionStorage.getItem('app_has_counted');
+                      // 如果這個 session 已經算過，就只讀取不增加
+                      const url = hasCounted 
+                          ? `https://api.counterapi.dev/v1/${namespace}/${key}` 
+                          : `https://api.counterapi.dev/v1/${namespace}/${key}/up`;
+
+                      const res = await fetch(url);
+                      const data = await res.json();
                       
-                      const [
-                          { initializeApp }, 
-                          { getAuth, signInAnonymously, signInWithCustomToken }, 
-                          { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot }
-                      ] = await Promise.all([
-                          import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js'),
-                          import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js'),
-                          import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js')
-                      ]);
-
-                      const app = initializeApp(firebaseConfig);
-                      const auth = getAuth(app);
-                      const db = getFirestore(app);
-
-                      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                          await signInWithCustomToken(auth, __initial_auth_token);
-                      } else {
-                          await signInAnonymously(auth);
+                      if (data && typeof data.count === 'number') {
+                          setGlobalCounter(data.count + 864); // 加上原本的基數
+                          sessionStorage.setItem('app_has_counted', 'true');
                       }
-
-                      if (!auth.currentUser) return;
-
-                      const counterRef = doc(db, 'artifacts', appId, 'public', 'data', 'counter', 'global');
-                      
-                      const docSnap = await getDoc(counterRef);
-                      if (!docSnap.exists()) {
-                          await setDoc(counterRef, { count: 865 });
-                      } else {
-                          if (!sessionStorage.getItem('app_has_counted')) {
-                              await updateDoc(counterRef, { count: increment(1) });
-                              sessionStorage.setItem('app_has_counted', 'true');
-                          }
-                      }
-
-                      unsubscribe = onSnapshot(counterRef, (snap) => {
-                          if (snap.exists() && isMounted) {
-                              setGlobalCounter(snap.data().count);
-                          }
-                      }, (err) => {
-                          console.error("Counter snapshot error:", err);
-                      });
-
                   } catch (err) {
-                      console.warn("Firebase counter init failed:", err);
+                      console.warn("Counter init failed, using default:", err);
+                      // 失敗時維持預設的 864
                   }
               };
 
-              setupFirebase();
-
-              return () => {
-                  isMounted = false;
-                  if (unsubscribe) unsubscribe();
-              };
+              fetchCounter();
           }, []);
           // ===============================
 
@@ -501,6 +479,37 @@
               const msg = generateParentMessage(selectedStudentReport, true);
               setFinalReportText(msg);
           }, [selectedStudentReport, teacherNote, allData]); 
+
+          // --- 隱藏創作者觸發器 ---
+          const handleTitleClick = () => {
+              titleClickCount.current += 1;
+              if (titleClickTimer.current) clearTimeout(titleClickTimer.current);
+              titleClickTimer.current = setTimeout(() => {
+                  titleClickCount.current = 0;
+              }, 1000); // 1秒內要點完
+
+              // 改為點擊 3 次
+              if (titleClickCount.current >= 3) {
+                  titleClickCount.current = 0;
+                  if (isCreator) {
+                      showConfirm("要登出創作者模式並隱藏計數器嗎？", () => {
+                          setIsCreator(false);
+                          localStorage.removeItem('classLogCreator');
+                      });
+                  } else {
+                      showPrompt("請輸入創作者專屬密碼：", "", (val) => {
+                          // 改為密碼 1025
+                          if (val === '1025') {
+                              setIsCreator(true);
+                              localStorage.setItem('classLogCreator', 'true');
+                              showAlert("密碼正確！已進入創作者模式。");
+                          } else {
+                              showAlert("密碼錯誤！");
+                          }
+                      });
+                  }
+              }
+          };
 
           const handleUpdateStudentName = (id, newName) => {
               setStudents(prev => prev.map(s => s.id === id ? { ...s, name: newName } : s));
@@ -700,6 +709,23 @@
             link.click();
           };
 
+          const handleUnlock = () => {
+              if (pinInput === appPin) {
+                  setIsLocked(false);
+              } else {
+                  showAlert("密碼錯誤，請重試！");
+                  setPinInput('');
+              }
+          };
+
+          const handleSavePin = () => {
+              showConfirm(newPinInput ? "確定要啟用/更新密碼嗎？\n請務必牢記，忘記密碼需清除瀏覽器資料(會遺失未備份資料)！" : "確定要停用密碼鎖嗎？", () => {
+                  setAppPin(newPinInput);
+                  localStorage.setItem('classLogAppPin', newPinInput);
+                  showAlert(newPinInput ? "密碼已更新並啟用！" : "密碼鎖已停用！");
+              });
+          };
+
           // 支援日期區間的統計函數
           const getWeeklyStats = (studentId, customStart = null, customEnd = null) => {
             let dates = [];
@@ -729,7 +755,7 @@
 
             dates.forEach(date => {
               const data = allData[date]; if (!data) return;
-              const dateStr = date.slice(5).replace('-','/'); // 10/25
+              const dateStr = formatShortDate(date); // 自動轉為 5/22 這種極簡格式
 
               if (data.attendanceData) Object.keys(data.attendanceData).forEach(k => { 
                   if (data.attendanceData[k]?.includes(studentId)) { 
@@ -773,7 +799,7 @@
                               }
                               
                               stats.behavior[displayLabel] = (stats.behavior[displayLabel] || 0) + 1; 
-                              detailedBehaviors.push(`${dateStr} ${periodLabel}：${displayLabel}`); 
+                              detailedBehaviors.push(`${dateStr} ${periodLabel}:${displayLabel}`); 
                           } 
                       }); 
                   } 
@@ -782,7 +808,7 @@
               if (data.incidentIncludeInReport && data.incidentStudents && data.incidentStudents.includes(studentId)) {
                   stats.behavior['偶發事件'] = (stats.behavior['偶發事件'] || 0) + 1;
                   const shortLog = data.incidentLog ? (data.incidentLog.length > 15 ? data.incidentLog.substring(0, 15) + '...' : data.incidentLog.replace(/\n/g, ' ')) : '無文字說明';
-                  detailedBehaviors.push(`${dateStr} 偶發：${shortLog}`);
+                  detailedBehaviors.push(`${dateStr} 偶發:${shortLog}`);
               }
             });
 
@@ -888,8 +914,8 @@
                  return; 
              }
 
-             let htmlContent = `<h1 style="text-align: center; font-family: 'Microsoft JhengHei', sans-serif; color: #5D4037;">班級偶發事件紀錄</h1>`;
-             htmlContent += `<p style="text-align: center; font-family: 'Microsoft JhengHei', sans-serif; color: #666; font-size: 14pt;">區間：${incidentStartDate} ~ ${incidentEndDate}</p><hr style="border: 1px solid #ccc; margin-bottom: 20px;" />`;
+             let htmlContent = `<h1 style="text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif; color: #5D4037;">班級偶發事件紀錄</h1>`;
+             htmlContent += `<p style="text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif; color: #666; font-size: 14pt;">區間：${incidentStartDate} ~ ${incidentEndDate}</p><hr style="border: 1px solid #ccc; margin-bottom: 20px;" />`;
              
              let hasData = false;
 
@@ -903,8 +929,8 @@
                      hasData = true;
                      const formattedLog = (dayData.incidentLog || '').replace(/\n/g, '<br/>'); // 處理換行
                      
-                     htmlContent += `<div style="font-family: 'Microsoft JhengHei', sans-serif; margin-bottom: 25px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">`;
-                     htmlContent += `<h3 style="color: #1976D2; margin-top: 0; border-bottom: 2px dashed #1976D2; padding-bottom: 8px;">📅 日期：${dateKey}</h3>`;
+                     htmlContent += `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin-bottom: 25px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">`;
+                     htmlContent += `<h3 style="color: #1976D2; margin-top: 0; border-bottom: 2px dashed #1976D2; padding-bottom: 8px;">📅 日期：${formatShortDate(dateKey)}</h3>`;
                      
                      if (dayData.incidentStudents && dayData.incidentStudents.length > 0) {
                          const studentStr = dayData.incidentStudents.map(id=>students.find(s=>s.id===id)?.name || id).join('、');
@@ -937,6 +963,109 @@
              link.click();
              document.body.removeChild(link);
              URL.revokeObjectURL(url);
+          };
+
+          // --- 這是全新的匯出全班週報 (Word) 功能 (精準還原 B4 六格排版) ---
+          const handleExportAllStudentsWord = () => {
+            if (printMode === 'custom' && (!printCustomStart || !printCustomEnd)) {
+                showAlert('請選擇完整的開始與結束日期');
+                return;
+            }
+
+            let chunks = [];
+            for (let i = 0; i < students.length; i += 6) { chunks.push(students.slice(i, i + 6)); }
+
+            let htmlContent = `<html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+            <head>
+            <meta charset="utf-8">
+            <style>
+                @page WordSection1 { size: 250mm 353mm; margin: 10mm; } /* 強制 B4 尺寸與邊界 */
+                div.WordSection1 { page: WordSection1; font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif; }
+                table.main-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+                td.card-cell { border: 1.5pt solid #5D4037; padding: 15pt; vertical-align: top; width: 50%; height: 320pt; }
+            </style>
+            </head><body><div class="WordSection1">`;
+
+            chunks.forEach((chunk, chunkIndex) => {
+                htmlContent += `<table class="main-table">`;
+                for (let r = 0; r < 3; r++) {
+                    htmlContent += `<tr>`;
+                    for (let c = 0; c < 2; c++) {
+                        const student = chunk[r * 2 + c];
+                        if (student) {
+                            const { dates, stats, detailedBehaviors, detailedAttendance, detailedMissing, detailedContactBook, detailedHomework } = getWeeklyStats(
+                                student.id,
+                                printMode === 'custom' ? printCustomStart : null,
+                                printMode === 'custom' ? printCustomEnd : null
+                            );
+                            
+                            const dateRange = dates.length > 0 ? `${formatShortDate(dates[dates.length-1])}~${formatShortDate(dates[0])}` : '無資料';
+
+                            const attStr = detailedAttendance.length > 0 ? detailedAttendance.join('、') : '全勤 👍';
+                            const cbStr = detailedContactBook.length > 0 ? detailedContactBook.join('、') : '良好 👍';
+                            const totalHw = Object.values(stats.homework).reduce((a,b)=>a+b, 0);
+                            const hwStr = detailedHomework.length > 0 ? detailedHomework.join('、') : '良好 👍';
+                            const totalBeh = Object.values(stats.behavior).reduce((a,b)=>a+b, 0);
+                            const behStr = detailedBehaviors.length > 0 ? detailedBehaviors.join('、') : '良好 👍';
+
+                            let bodyContent = '';
+                            if (teacherNote.trim()) {
+                                bodyContent += `
+                                <div style="margin-bottom: 8px; font-size: 12pt; font-weight: bold; line-height: 1.4; color: #111;">
+                                    📢 ${teacherNote.replace(/\n/g, '<br/>')}
+                                </div>
+                                <hr style="border: 0; border-bottom: 1.5pt solid #5D4037; margin-bottom: 8px;" />
+                                `;
+                            }
+
+                            bodyContent += `
+                            <div style="font-size: 11.5pt; line-height: 1.6; color: #333;">
+                                <div style="margin-bottom: 4px;">📆 <b>缺勤:</b> ${attStr}</div>
+                                <div style="margin-bottom: 4px;">📝 <b>聯絡簿:</b> ${cbStr}</div>
+                                <div style="margin-bottom: 4px;">📚 <b>缺交(${totalHw}):</b> ${hwStr}</div>
+                                <div style="margin-bottom: 4px;">⚠️ <b>違規(${totalBeh}):</b> ${behStr}</div>
+                            </div>
+                            `;
+
+                            htmlContent += `
+                            <td class="card-cell">
+                                <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 10px;">
+                                    <tr>
+                                        <td style="border: none; padding: 0; text-align: left; font-size: 15pt; font-weight: bold; color: #5D4037; width: 60%;">${student.id}. ${student.name}</td>
+                                        <td style="border: none; padding: 0; text-align: right; font-size: 11pt; color: #666; width: 40%; vertical-align: bottom;">${dateRange}</td>
+                                    </tr>
+                                </table>
+                                <div style="min-height: 180pt;">
+                                    ${bodyContent}
+                                </div>
+                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1.5pt dashed #999; text-align: right; position: relative;">
+                                    <div style="font-size: 10pt; text-align: left; margin-bottom: 10px; color: #333;">請多多關心孩子的學習狀況，謝謝您的配合！</div>
+                                    <div style="font-weight: bold; font-size: 13pt;">家長簽名：________________</div>
+                                </div>
+                            </td>`;
+                        } else {
+                            htmlContent += `<td style="border: none; width: 50%;"></td>`;
+                        }
+                    }
+                    htmlContent += `</tr>`;
+                }
+                htmlContent += `</table>`;
+                if (chunkIndex < chunks.length - 1) {
+                     htmlContent += `<br clear="all" style="mso-special-character:line-break;page-break-before:always" />`;
+                }
+            });
+
+            htmlContent += `</div></body></html>`;
+
+            const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `全班週報表_${currentDate}.doc`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
           };
 
           const getDailyStudentViolations = () => {
@@ -1029,24 +1158,7 @@
               reader.readAsText(file);
           };
 
-          const handleUnlock = () => {
-              if (pinInput === appPin) {
-                  setIsLocked(false);
-              } else {
-                  showAlert("密碼錯誤，請重試！");
-                  setPinInput('');
-              }
-          };
-
-          const handleSavePin = () => {
-              showConfirm(newPinInput ? "確定要啟用/更新密碼嗎？\n請務必牢記，忘記密碼需清除瀏覽器資料(會遺失未備份資料)！" : "確定要停用密碼鎖嗎？", () => {
-                  setAppPin(newPinInput);
-                  localStorage.setItem('classLogAppPin', newPinInput);
-                  showAlert(newPinInput ? "密碼已更新並啟用！" : "密碼鎖已停用！");
-              });
-          };
-
-          // 將列印畫面獨立為狀態，繞過 iOS 自動封鎖的限制
+          // --- 列印畫面獨立為狀態 (iPad 最強的直接編輯模式) ---
           const handlePrintAllStudents = () => {
             if (printMode === 'custom' && (!printCustomStart || !printCustomEnd)) {
                 showAlert('請選擇完整的開始與結束日期');
@@ -1057,7 +1169,7 @@
             // 每頁印 6 張 (2欄 x 3列)
             for (let i = 0; i < students.length; i += 6) { chunks.push(students.slice(i, i + 6)); }
 
-            let html = '<div class="print-container" style="background: white; width: 100%;">';
+            let html = '<div class="print-container" style="background: white; width: 100%; outline: none;">';
             chunks.forEach(chunk => {
                 html += '<div class="print-page">';
                 chunk.forEach((student) => {
@@ -1067,9 +1179,10 @@
                         printMode === 'custom' ? printCustomEnd : null
                     );
                     
-                    const dateRange = dates.length > 0 ? `${dates[dates.length-1].slice(5).replace('-','/')}~${dates[0].slice(5).replace('-','/')}` : '無資料';
+                    const dateRange = dates.length > 0 ? `${formatShortDate(dates[dates.length-1])}~${formatShortDate(dates[0])}` : '無資料';
 
-                    const attStr = detailedAttendance.length > 0 ? detailedAttendance.map(d=>d.split(' ').slice(1).join(' ')).join('、') : '全勤 👍';
+                    // 確保陣列直接以頓號連接，產生完全在一列並自動換行的文字
+                    const attStr = detailedAttendance.length > 0 ? detailedAttendance.join('、') : '全勤 👍';
                     const cbStr = detailedContactBook.length > 0 ? detailedContactBook.join('、') : '良好 👍';
                     const totalHw = Object.values(stats.homework).reduce((a,b)=>a+b, 0);
                     const hwStr = detailedHomework.length > 0 ? detailedHomework.join('、') : '良好 👍';
@@ -1132,6 +1245,59 @@
             setPrintHtml(html);
           };
 
+          const handlePrintIncidents = () => {
+             if (!incidentStartDate || !incidentEndDate) { 
+                 showAlert("請選擇開始與結束日期！"); 
+                 return; 
+             }
+             const start = new Date(incidentStartDate);
+             const end = new Date(incidentEndDate);
+             if (start > end) { 
+                 showAlert("開始日期不能晚於結束日期！"); 
+                 return; 
+             }
+
+             let htmlContent = `<div style="padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif; outline: none;">`;
+             htmlContent += `<h1 style="text-align: center; color: #5D4037; font-size: 24pt; margin-bottom: 5px;">班級偶發事件紀錄</h1>`;
+             htmlContent += `<p style="text-align: center; color: #666; font-size: 14pt; margin-bottom: 20px;">區間：${incidentStartDate} ~ ${incidentEndDate}</p><hr style="border: 1px solid #ccc; margin-bottom: 20px;" />`;
+             
+             let hasData = false;
+
+             // 遍歷日期區間
+             for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                 const dateKey = d.toISOString().split('T')[0];
+                 const dayData = allData[dateKey];
+                 
+                 // 確認該日期有資料且 incidentLog 不為空 或是 有涉事學生
+                 if (dayData && ((dayData.incidentLog && dayData.incidentLog.trim() !== '') || (dayData.incidentStudents && dayData.incidentStudents.length > 0))) {
+                     hasData = true;
+                     const formattedLog = (dayData.incidentLog || '').replace(/\n/g, '<br/>'); // 處理換行
+                     
+                     htmlContent += `<div style="margin-bottom: 25px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; page-break-inside: avoid;">`;
+                     htmlContent += `<h3 style="color: #1976D2; margin-top: 0; border-bottom: 2px dashed #1976D2; padding-bottom: 8px; font-size: 16pt;">📅 日期：${dateKey}</h3>`;
+                     
+                     if (dayData.incidentStudents && dayData.incidentStudents.length > 0) {
+                         const studentStr = dayData.incidentStudents.map(id=>students.find(s=>s.id===id)?.name || id).join('、');
+                         htmlContent += `<p style="color: #D32F2F; font-weight: bold; margin-bottom: 8px; font-size: 14pt;">涉事學生：${studentStr}</p>`;
+                     }
+                     if (formattedLog) {
+                         htmlContent += `<p style="line-height: 1.6; font-size: 14pt; color: #333;">${formattedLog}</p>`;
+                     }
+                     htmlContent += `</div>`;
+                 }
+             }
+
+             htmlContent += `</div>`;
+
+             if (!hasData) {
+                 showAlert("所選區間內沒有偶發事件的紀錄喔！");
+                 return;
+             }
+
+             // 開啟列印預覽模式
+             setPrintHtml(htmlContent);
+          };
+
           const exportStudentWeekly = () => { const s = students.find(s => s.id === selectedStudentReport); if(!s) return showAlert('請先選擇學生'); const { dates, stats } = getWeeklyStats(selectedStudentReport); let csv = `學生個別週報表\n座號,${s.id}\n姓名,${s.name}\n統計範圍,${dates[dates.length-1]} ~ ${dates[0]}\n\n類別,項目,次數\n`; Object.entries(stats.attendance).forEach(([k, v]) => csv += `缺勤,${ATTENDANCE_TYPES.find(t=>t.id===k)?.label||k},${v}\n`); Object.entries(stats.missing).forEach(([k, v]) => csv += `缺交,${k},${v}\n`); Object.entries(stats.behavior).forEach(([k, v]) => csv += `違規,${k},${v}\n`); downloadCSV(csv, `${s.name}_週報表.csv`); };
           
           const generateParentMessage = (studentId, returnOnly = false, customStart = null, customEnd = null) => { 
@@ -1139,28 +1305,25 @@
             if (!s) return "請先選擇學生..."; 
             
             const { dates, stats, detailedBehaviors, detailedAttendance, detailedMissing, detailedContactBook, detailedHomework } = getWeeklyStats(studentId, customStart, customEnd); 
-            const dateRange = dates.length > 0 ? `${dates[dates.length-1].slice(5).replace('-','/')} ~ ${dates[0].slice(5).replace('-','/')}` : '無資料'; 
+            const dateRange = dates.length > 0 ? `${formatShortDate(dates[dates.length-1])} ~ ${formatShortDate(dates[0])}` : '無資料'; 
             
             let msg = ""; 
             if (teacherNote.trim()) msg += `📢 注意事項：\n${teacherNote}\n\n------------------------------\n\n`; 
             msg += `【班級週報】親愛的家長您好，這是 ${s.name} 本週 (${dateRange}) 的在校表現摘要：\n\n`; 
             
-            msg += `📅 缺勤紀錄：`;
-            if (detailedAttendance.length > 0) { msg += `\n`; detailedAttendance.forEach(item => { msg += `   - ${item}\n`; }); } else { msg += ` 全勤 👍\n`; }
-            msg += `\n`;
-
-            msg += `📝 聯絡簿狀況：`;
-            if (detailedContactBook.length > 0) { msg += `\n`; detailedContactBook.forEach(item => { msg += `   - ${item}\n`; }); } else { msg += ` 表現優異 👍\n`; }
-            msg += `\n`;
+            msg += `📅 缺勤：`;
+            if (detailedAttendance.length > 0) { msg += detailedAttendance.join('、') + `\n`; } else { msg += `全勤 👍\n`; }
+            
+            msg += `📝 聯絡簿：`;
+            if (detailedContactBook.length > 0) { msg += detailedContactBook.join('、') + `\n`; } else { msg += `表現優異 👍\n`; }
 
             const totalHomeworkMissing = Object.values(stats.homework).reduce((a,b) => a+b, 0);
-            msg += `📚 作業缺交 (${totalHomeworkMissing}次)：`;
-            if (detailedHomework.length > 0) { msg += `\n`; detailedHomework.forEach(item => { msg += `   - ${item}\n`; }); } else { msg += ` 作業全交 👍\n`; }
-            msg += `\n`;
+            msg += `📚 缺交(${totalHomeworkMissing}次)：`;
+            if (detailedHomework.length > 0) { msg += detailedHomework.join('、') + `\n`; } else { msg += `作業全交 👍\n`; }
             
             const totalBehaviorCount = Object.values(stats.behavior).reduce((a,b) => a+b, 0);
-            msg += `⚠️ 課堂表現 (違規 ${totalBehaviorCount} 次)：`;
-            if (detailedBehaviors.length > 0) { msg += `\n`; detailedBehaviors.forEach(item => { msg += `   - ${item}\n`; }); } else { msg += ` 遵守常規，表現良好 👍\n`; }
+            msg += `⚠️ 違規(${totalBehaviorCount}次)：`;
+            if (detailedBehaviors.length > 0) { msg += detailedBehaviors.join('、') + `\n`; } else { msg += `遵守常規，表現良好 👍\n`; }
             
             msg += `\n請多多關心孩子的學習狀況，謝謝您的配合！`; 
             
@@ -1176,14 +1339,17 @@
 
           // --- Views ---
 
-          // 專屬列印預覽模式 UI (完全覆蓋畫面，避免 iOS 阻擋彈出視窗，並確保符合 B4 六格比例)
+          // 專屬列印預覽模式 UI (完全覆蓋畫面，並支援直接點擊修改內容！)
           if (printHtml) {
+              const isB4Grid = printHtml.includes('print-page');
+              const wrapperWidth = isB4Grid ? '250mm' : '210mm';
+              
               return (
                   <div className="min-h-screen w-full bg-[#525659] text-black font-sans relative flex flex-col items-center overflow-auto pb-10">
                       <div className="no-print sticky top-0 left-0 w-full bg-[#5D4037] text-white p-4 flex justify-between items-center shadow-lg z-[100]">
                           <div>
-                              <div className="font-bold text-lg">預覽列印模式 (B4 六格)</div>
-                              <div className="text-xs opacity-80 mt-1">請點擊右方按鈕，或使用系統的分享功能列印</div>
+                              <div className="font-bold text-lg">{isB4Grid ? '預覽與編輯模式 (B4 六格)' : '預覽與編輯模式 (A4)'}</div>
+                              <div className="text-xs mt-1 text-yellow-300 font-bold">💡 提示：可直接點擊下方紙張內的文字進行修改！改完再按列印</div>
                           </div>
                           <div className="flex gap-2">
                               <button onClick={() => setPrintHtml(null)} className="px-4 py-2 bg-gray-500 rounded-xl font-bold active:scale-95 transition text-sm text-white">返回</button>
@@ -1198,18 +1364,29 @@
                               body, html { background: white !important; margin: 0; padding: 0; height: auto !important; overflow: visible !important; }
                               .no-print { display: none !important; }
                               * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                              @page { size: B4 portrait; margin: 5mm; }
-                              #print-wrapper { background: white; width: 100%; padding: 0; margin: 0; box-shadow: none; }
+                              @page { size: ${isB4Grid ? 'B4 portrait' : 'A4 portrait'}; margin: ${isB4Grid ? '5mm' : '15mm'}; }
+                              #print-wrapper { background: white; width: 100% !important; padding: 0 !important; margin: 0; box-shadow: none; outline: none; }
                               .print-page { height: 340mm; gap: 6mm; padding: 5mm; }
                           }
                           .print-page { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); gap: 8mm; padding: 10mm; box-sizing: border-box; page-break-after: always; height: 353mm; }
-                          .print-card { border: 2px solid #5D4037; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; background: white; box-sizing: border-box; }
+                          .print-card { border: 2px solid #5D4037; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; background: white; box-sizing: border-box; outline: none; }
                           .print-header { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 12px; border-bottom: 2px solid #5D4037; font-size: 13pt; font-weight: bold; background: #fdfdfd; }
                           .print-body { padding: 12px; flex-grow: 1; overflow: hidden; }
                           .print-footer { border-top: 2px solid #5D4037; padding: 8px 12px; text-align: right; background: white; }
+                          
+                          /* 編輯模式下的視覺優化 */
+                          #print-wrapper [contenteditable="true"]:focus { outline: 2px dashed #4A90E2; outline-offset: 4px; border-radius: 4px; }
+                          .print-card:focus-within { border-color: #4A90E2; box-shadow: 0 0 0 2px rgba(74,144,226,0.3); }
                       `}</style>
 
-                      <div id="print-wrapper" className="mt-6 print:mt-0 bg-white shadow-2xl" style={{ width: '250mm' }} dangerouslySetInnerHTML={{ __html: printHtml }} />
+                      <div 
+                          id="print-wrapper" 
+                          contentEditable={true} 
+                          suppressContentEditableWarning={true}
+                          className="mt-6 print:mt-0 bg-white shadow-2xl focus:outline-none cursor-text" 
+                          style={{ width: wrapperWidth, minHeight: '297mm', padding: isB4Grid ? '0' : '20px' }} 
+                          dangerouslySetInnerHTML={{ __html: printHtml }} 
+                      />
                   </div>
               );
           }
@@ -1372,12 +1549,12 @@
               </div> 
               
               <div className="doodle-card p-5 bg-white relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-4 bg-mint border-b-2 border-coffee"></div><h3 className="text-2xl font-bold mb-5 mt-3 flex items-center gap-2"><Icon name="Clock" className="w-7 h-7" /> 到校狀況</h3><div className="grid grid-cols-2 md:grid-cols-3 gap-4">{ATTENDANCE_TYPES.map(type => { const count = attendanceData[type.id]?.length || 0; return <button key={type.id} onClick={() => handleAttendanceClick(type.id)} className={`btn-3d p-3 flex items-center justify-between px-4 ${type.color} h-20`}><div className="flex items-center gap-2"><Icon name={type.icon} className="w-8 h-8" /><span className="text-2xl font-bold">{type.label}</span></div>{count > 0 && <span className="bg-coffee text-white text-xl px-3 py-1 rounded-full font-bold">{count}</span>}</button> })}</div></div> <div className="doodle-card p-5 bg-white relative overflow-hidden"> <div className="absolute top-0 left-0 w-full h-4 bg-yellow border-b-2 border-coffee"></div> <h3 className="text-2xl font-bold mb-5 mt-3 flex items-center gap-2"><Icon name="FileWarning" className="w-7 h-7" /> 作業與聯絡簿</h3> 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+              <div className="flex flex-wrap justify-center gap-2 mb-4">
                   {contactBookTypes.map(item => (
-                      <button key={item.id} onClick={() => openSelector('missing', item.id)} className={`btn-3d flex flex-col items-center justify-center p-2 h-32 ${item.color || 'bg-yellow'} relative`}>
-                          <Icon name={item.icon} className="w-10 h-10 mb-2"/>
-                          <span className="text-xl font-bold text-center leading-tight w-full break-words px-1">{item.label}</span>
-                          {missingData[item.id]?.length > 0 && <span className="absolute top-[-5px] right-[-5px] w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center border-2 border-coffee text-sm font-bold z-10">{missingData[item.id].length}</span>}
+                      <button key={item.id} onClick={() => openSelector('missing', item.id)} className={`btn-3d flex flex-col items-center justify-center p-2 h-28 md:h-32 ${item.color || 'bg-yellow'} relative w-[calc(33.333%-6px)] sm:w-[calc(25%-6px)] md:w-[calc(20%-7px)]`}>
+                          <Icon name={item.icon} className="w-8 h-8 md:w-10 md:h-10 mb-1 md:mb-2"/>
+                          <span className="text-sm md:text-lg font-bold text-center leading-tight w-full break-words px-1">{item.label}</span>
+                          {missingData[item.id]?.length > 0 && <span className="absolute top-[-5px] right-[-5px] w-6 h-6 md:w-8 md:h-8 bg-red-500 text-white rounded-full flex items-center justify-center border-2 border-coffee text-xs md:text-sm font-bold z-10">{missingData[item.id].length}</span>}
                       </button>
                   ))}
               </div> 
@@ -1482,7 +1659,6 @@
 
             return (
               <div className="space-y-5">
-                 {/* New Date Picker Section */}
                 <div className="doodle-card p-4 bg-white flex flex-col md:flex-row justify-between items-center gap-4">
                       <div className="flex items-center gap-2 w-full md:w-auto">
                         <label className="font-bold text-coffee text-lg shrink-0">選擇日期：</label>
@@ -1493,18 +1669,54 @@
                             className="input-hand text-xl font-bold bg-yellow-50 border-2 border-coffee py-2 flex-grow md:flex-none" 
                         />
                       </div>
-                      <button onClick={exportDailyLog} className="btn-3d bg-yellow px-5 py-2 flex items-center gap-2 text-coffee font-bold text-lg whitespace-nowrap w-full md:w-auto justify-center">
-                         <Icon name="FileSpreadsheet" className="w-6 h-6"/> 匯出日誌
-                      </button>
+                      <div className="flex gap-2 w-full md:w-auto">
+                          <button onClick={exportDailyLog} className="flex-1 md:flex-none btn-3d bg-yellow px-4 py-2 flex items-center gap-1 text-coffee font-bold text-lg justify-center">
+                             <Icon name="FileSpreadsheet" className="w-5 h-5"/> 匯出(Excel)
+                          </button>
+                          <button onClick={() => window.print()} className="flex-1 md:flex-none btn-3d bg-white border-2 border-coffee px-4 py-2 flex items-center gap-1 text-coffee font-bold text-lg justify-center shadow-sm">
+                             <Icon name="Printer" className="w-5 h-5"/> 列印/PDF
+                          </button>
+                      </div>
                 </div>
                 
-                <div className="bg-white border-2 border-coffee p-6 min-h-[500px] text-base font-mono shadow-xl relative leading-relaxed">
+                <div className="bg-white border-2 border-coffee p-6 min-h-[60vh] text-base shadow-xl relative leading-relaxed" id="daily-log-content">
                   <h2 className="text-center text-2xl font-bold mb-6 border-b-2 border-coffee pb-3">{week || '____'}週 班級日誌 ({currentDate})</h2>
-                  <div className="mb-6 grid grid-cols-2 gap-4 text-lg"><div>值日生: {dutyStudent}號</div></div>
+                  <div className="mb-6 grid grid-cols-2 gap-4 text-lg font-bold"><div>值日生: {dutyStudent}號</div></div>
                   
-                  <div className="mb-6 border border-coffee p-3"><h3 className="font-bold mb-2 bg-gray-200 p-2 text-lg">缺勤</h3>{ATTENDANCE_TYPES.map(t => attendanceData[t.id]?.length > 0 && <div key={t.id} className="py-2 border-b border-dashed text-lg"><b>{t.label}:</b> {attendanceData[t.id].map(id=>students.find(s=>s.id===id)?.name || id).join('、')}</div>)}</div>
+                  <div className="mb-6 border border-coffee p-3">
+                      <h3 className="font-bold mb-2 bg-gray-200 p-2 text-lg">缺勤</h3>
+                      {ATTENDANCE_TYPES.map(t => {
+                          const list = attendanceData?.[t.id];
+                          if (!list || list.length === 0) return null;
+                          return (
+                              <div key={t.id} className="py-2 border-b border-dashed text-lg">
+                                  <b>{t.label}:</b> {list.map(id => students.find(s=>s.id===id)?.name || id).join('、')}
+                              </div>
+                          );
+                      })}
+                  </div>
                   
-                  <div className="mb-6 border border-coffee p-3"><h3 className="font-bold mb-2 bg-gray-200 p-2 text-lg">缺交</h3>{contactBookTypes.map(t => missingData[t.id]?.length > 0 && <div key={t.id} className="py-2 border-b border-dashed text-lg"><b>{t.label}:</b> {missingData[t.id].map(id=>students.find(s=>s.id===id)?.name || id).join('、')}</div>)}{subjects.map(s => missingData[s.id]?.length > 0 && <div key={s.id} className="py-2 border-b border-dashed text-lg"><b>{s.label}:</b> {missingData[s.id].map(id=>students.find(s=>s.id===id)?.name || id).join('、')}</div>)}</div>
+                  <div className="mb-6 border border-coffee p-3">
+                      <h3 className="font-bold mb-2 bg-gray-200 p-2 text-lg">缺交</h3>
+                      {contactBookTypes.map(t => {
+                          const list = missingData?.[t.id];
+                          if (!list || list.length === 0) return null;
+                          return (
+                              <div key={t.id} className="py-2 border-b border-dashed text-lg">
+                                  <b>{t.label}:</b> {list.map(id => students.find(s=>s.id===id)?.name || id).join('、')}
+                              </div>
+                          );
+                      })}
+                      {subjects.map(s => {
+                          const list = missingData?.[s.id];
+                          if (!list || list.length === 0) return null;
+                          return (
+                              <div key={s.id} className="py-2 border-b border-dashed text-lg">
+                                  <b>{s.label}:</b> {list.map(id => students.find(stud=>stud.id===id)?.name || id).join('、')}
+                              </div>
+                          );
+                      })}
+                  </div>
                   
                   <div className="mb-6 border border-coffee">
                     <h3 className="font-bold bg-red-100 p-2 border-b border-coffee text-lg text-red-800 flex items-center gap-2"><Icon name="AlertTriangle" className="w-5 h-5"/> 今日違規統計 (按學生)</h3>
@@ -1525,34 +1737,47 @@
                     </div>
                   </div>
 
-                  <div className="mb-6 border border-coffee"><h3 className="font-bold bg-gray-200 p-2 border-b border-coffee text-lg">課堂異常明細 & 備註</h3>{PERIODS.map(p => { 
-                      const logs=classLogData[p.id]; 
-                      const note=periodNotes[p.id]; 
-                      const hasLogs = logs && Object.keys(logs).some(k=>logs[k].length>0); 
-                      if(!hasLogs && !note) return null; 
-                      return ( 
-                        <div key={p.id} className="p-3 border-b border-coffee last:border-0">
-                            <div className="font-bold text-coffee mb-1 text-lg">{p.label}</div>
-                            {hasLogs && behaviors.map(b => logs[b.id]?.length > 0 && <div key={b.id} className="pl-4 flex text-lg"><span className="w-32 text-gray-600">- {b.label}:</span><span>{logs[b.id].map(id=>students.find(s=>s.id===id)?.name || id).join('、')}</span></div>)}
-                            {note && <div className="pl-4 text-lg text-blue-600 mt-1">備註: {note}</div>}
-                        </div> 
-                      ) 
-                  })}</div>
+                  <div className="mb-6 border border-coffee">
+                      <h3 className="font-bold bg-gray-200 p-2 border-b border-coffee text-lg">課堂異常明細 & 備註</h3>
+                      {PERIODS.map(p => { 
+                          const logs = classLogData?.[p.id]; 
+                          const note = periodNotes?.[p.id]; 
+                          const hasLogs = logs && Object.keys(logs).some(k => logs[k] && logs[k].length > 0); 
+                          if (!hasLogs && !note) return null; 
+                          return ( 
+                              <div key={p.id} className="p-3 border-b border-coffee last:border-0">
+                                  <div className="font-bold text-coffee mb-1 text-lg">{p.label}</div>
+                                  {hasLogs && behaviors.map(b => {
+                                      const bList = logs?.[b.id];
+                                      if (!bList || bList.length === 0) return null;
+                                      return (
+                                          <div key={b.id} className="pl-4 flex text-lg">
+                                              <span className="w-32 text-gray-600">- {b.label}:</span>
+                                              <span>{bList.map(id => students.find(s=>s.id===id)?.name || id).join('、')}</span>
+                                          </div>
+                                      );
+                                  })}
+                                  {note && <div className="pl-4 text-lg text-blue-600 mt-1">備註: {note}</div>}
+                              </div> 
+                          ) 
+                      })}
+                  </div>
+                  
                   <div className="border border-coffee p-3 min-h-[120px]">
                     <h3 className="font-bold mb-2 bg-gray-200 p-2 text-lg">全日偶發</h3>
                     {incidentStudents && incidentStudents.length > 0 && (
                         <div className="mb-2 font-bold text-red-600 text-lg">
-                            涉事學生：{incidentStudents.map(id=>students.find(s=>s.id===id)?.name || id).join('、')}
+                            涉事學生：{incidentStudents.map(id => students.find(s=>s.id===id)?.name || id).join('、')}
                         </div>
                     )}
-                    <p className="text-lg whitespace-pre-wrap">{incidentLog}</p>
+                    <p className="text-lg whitespace-pre-wrap">{incidentLog || '尚無紀錄'}</p>
                   </div>
                 </div>
 
-                {/* 區間偶發事件 Word 匯出區塊 */}
+                {/* 區間偶發事件 PDF 匯出區塊 */}
                 <div className="doodle-card p-5 bg-blue-soft mt-6">
                     <h3 className="text-2xl font-bold mb-4 flex items-center gap-2 border-b-2 border-coffee pb-2 text-coffee">
-                        <Icon name="PenTool" className="w-8 h-8"/> 匯出區間偶發事件 (Word)
+                        <Icon name="PenTool" className="w-8 h-8"/> 匯出區間偶發事件 (PDF / 列印)
                     </h3>
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
@@ -1564,8 +1789,11 @@
                             <input type="date" value={incidentEndDate} onChange={e => setIncidentEndDate(e.target.value)} className="input-hand text-lg w-full" />
                         </div>
                     </div>
-                    <button onClick={handleExportIncidentsWord} className="btn-3d w-full bg-coffee text-white py-3 text-xl flex items-center justify-center gap-2">
-                        <Icon name="Download" className="w-6 h-6"/> 下載 Word 檔
+                    <button onClick={handlePrintIncidents} className="btn-3d w-full bg-coffee text-white py-3 text-xl flex items-center justify-center gap-2">
+                        <Icon name="Printer" className="w-6 h-6"/> 列印 / 存成 PDF
+                    </button>
+                    <button onClick={handleExportIncidentsWord} className="mt-3 w-full py-3 text-white bg-blue-600 border-2 border-blue-700 rounded-xl flex items-center justify-center gap-2 font-bold hover:bg-blue-700 transition shadow-sm">
+                        <Icon name="Download" className="w-5 h-5"/> 匯出區間偶發事件 (電腦版 Word)
                     </button>
                 </div>
               </div>
@@ -1665,15 +1893,22 @@
                         </div>
                     )}
 
-                    <div className="space-y-3">
-                        <button onClick={handlePrintAllStudents} className="w-full py-3 text-coffee bg-white border-2 border-coffee rounded-xl flex items-center justify-center gap-2 font-bold hover:bg-gray-50 transition shadow-sm">
-                            <Icon name="Printer" className="w-5 h-5"/> 列印全班週報 ({printMode === 'default' ? '預設' : '自訂'})
+                    {/* 使用 Grid 實現 2x2 排列 */}
+                    <div className="grid grid-cols-2 gap-3">
+                        {/* 第一列：PDF 與 Word */}
+                        <button onClick={handlePrintAllStudents} className="w-full py-3 text-coffee bg-white border-2 border-coffee rounded-xl flex flex-col items-center justify-center gap-2 font-bold hover:bg-gray-50 transition shadow-sm text-sm">
+                            <Icon name="Printer" className="w-6 h-6"/> 預覽 / PDF
                         </button>
-                        <button onClick={exportWholeClassWeekly} className="w-full py-3 text-coffee flex items-center justify-center gap-2 font-bold hover:bg-orange-100 rounded-xl transition">
-                            <Icon name="FileSpreadsheet" className="w-5 h-5"/> 下載全班週報表 Excel
+                        <button onClick={handleExportAllStudentsWord} className="w-full py-3 text-white bg-blue-600 border-2 border-blue-700 rounded-xl flex flex-col items-center justify-center gap-2 font-bold hover:bg-blue-700 transition shadow-sm text-sm">
+                            <Icon name="Download" className="w-6 h-6"/> 匯出 Word
                         </button>
-                        <button onClick={exportStudentWeekly} className="w-full py-2 text-coffee bg-white border-2 border-coffee rounded-xl flex items-center justify-center gap-2 text-sm font-bold hover:bg-blue-50 transition shadow-sm opacity-80">
-                            <Icon name="Download" className="w-4 h-4"/> 下載個別報表 Excel (目前選擇學生)
+                        
+                        {/* 第二列：Excel 全班與個別 */}
+                        <button onClick={exportWholeClassWeekly} className="w-full py-3 text-coffee bg-orange-100 border-2 border-orange-300 rounded-xl flex flex-col items-center justify-center gap-2 font-bold hover:bg-orange-200 transition shadow-sm text-sm">
+                            <Icon name="FileSpreadsheet" className="w-6 h-6"/> Excel (全班)
+                        </button>
+                        <button onClick={exportStudentWeekly} className="w-full py-3 text-coffee bg-mint border-2 border-teal-400 rounded-xl flex flex-col items-center justify-center gap-2 font-bold hover:bg-teal-200 transition shadow-sm text-sm">
+                            <Icon name="User" className="w-6 h-6"/> Excel (個別)
                         </button>
                     </div>
                  </div>
@@ -1702,13 +1937,13 @@
           };
 
           return (
-            <div className={`min-h-screen w-full max-w-4xl mx-auto relative flex flex-col ${printHtml ? '' : 'overflow-hidden'}`}>
+            <div className={`w-full max-w-4xl mx-auto relative flex flex-col min-h-[100dvh] bg-[#FEF9F2] ${printHtml ? 'h-screen overflow-hidden' : ''}`}>
               <style>{customStyles}</style>
               <Modal config={modalConfig} onClose={() => setModalConfig(prev => ({...prev, show: false}))} />
               
-              <header className="no-print pt-8 pb-3 px-6 flex justify-between items-center"><h1 className="text-4xl font-bold text-coffee tracking-wider transform -rotate-1 flex items-center gap-3"><Icon name="BookOpen" className="w-10 h-10" /> Pro ++班級助理</h1><div className="flex gap-2"><button onClick={() => setActiveTab('manual')} className="bg-white p-2 rounded-full border-2 border-coffee shadow-sm active:scale-95 transition" title="使用說明書"><Icon name="HelpCircle" className="w-7 h-7 text-coffee"/></button><div className="bg-white p-2 rounded-full border-2 border-coffee shadow-sm flex items-center justify-center" title={saveStatus === 'saved' ? '已儲存' : '儲存中...'}>{saveStatus === 'saved' ? <Icon name="Check" className="w-7 h-7" /> : <Icon name="Loader" className="w-7 h-7" />}</div></div></header>
+              <header className="no-print shrink-0 pt-6 sm:pt-8 pb-3 px-4 sm:px-6 flex justify-between items-center"><h1 onClick={handleTitleClick} className="text-3xl sm:text-4xl font-bold text-coffee tracking-wider transform -rotate-1 flex items-center gap-2 sm:gap-3 cursor-pointer select-none">{isCreator ? <Icon name="Crown" className="w-8 h-8 sm:w-10 sm:h-10" /> : <Icon name="BookOpen" className="w-8 h-8 sm:w-10 sm:h-10" />} Pro ++班級助理</h1><div className="flex gap-2"><button onClick={() => setActiveTab('manual')} className="bg-white p-2 rounded-full border-2 border-coffee shadow-sm active:scale-95 transition" title="使用說明書"><Icon name="HelpCircle" className="w-6 h-6 sm:w-7 sm:h-7 text-coffee"/></button><div className="bg-white p-2 rounded-full border-2 border-coffee shadow-sm flex items-center justify-center" title={saveStatus === 'saved' ? '已儲存' : '儲存中...'}>{saveStatus === 'saved' ? <Icon name="Check" className="w-6 h-6 sm:w-7 sm:h-7" /> : <Icon name="Loader" className="w-6 h-6 sm:w-7 sm:h-7" />}</div></div></header>
               
-              <main className="no-print px-5 h-full pt-4 flex flex-col">
+              <main className="no-print px-4 sm:px-5 flex-1 pt-2 flex flex-col relative">
                   {/* 主要內容區塊 */}
                   <div className="flex-grow">
                     {activeTab === 'basic' && renderBasicInfo()}
@@ -1719,22 +1954,26 @@
                     {activeTab === 'manual' && renderManual()}
                   </div>
 
-                  {/* 全域底部 Footer (計數器 + 簽名檔) - 在所有頁面都會顯示在最下方 */}
-                  <div className="w-full flex justify-between items-end pb-32 pt-8">
-                      {/* Counter Box */}
-                      <div className="bg-[#FFF8E1] border-2 border-[#D7CCC8] rounded-xl px-3 py-2 flex flex-col items-center justify-center shadow-sm">
-                          <div className="text-[10px] font-bold text-[#8D6E63] mb-1">累積使用人次</div>
-                          <div className="flex gap-[1px]">
-                              {displayCount.map((num, i) => (
-                                  <div key={i} className="bg-gradient-to-b from-[#1976D2] to-[#0D47A1] text-white font-mono text-xs px-1 rounded-[2px] shadow-inner border border-[#000000] font-bold">
-                                      {num}
+                  {/* 全域底部 Footer (計數器 + 簽名檔) - 增加底部空間以避開導覽列 */}
+                  <div className="w-full flex justify-between items-end pb-32 pt-12 px-2 mt-auto shrink-0">
+                      {/* Counter Box (Only for Creator) */}
+                      <div className="flex-1">
+                          {isCreator && (
+                              <div className="inline-flex bg-[#FFF8E1] border-2 border-[#D7CCC8] rounded-xl px-3 py-2 flex-col items-center justify-center shadow-sm">
+                                  <div className="text-[10px] font-bold text-[#8D6E63] mb-1">累積使用人次</div>
+                                  <div className="flex gap-[1px]">
+                                      {displayCount.map((num, i) => (
+                                          <div key={i} className="bg-gradient-to-b from-[#1976D2] to-[#0D47A1] text-white font-mono text-xs px-1 rounded-[2px] shadow-inner border border-[#000000] font-bold">
+                                              {num}
+                                          </div>
+                                      ))}
                                   </div>
-                              ))}
-                          </div>
+                              </div>
+                          )}
                       </div>
 
                       {/* Signature */}
-                      <div className="text-right text-coffee pointer-events-none select-none">
+                      <div className="text-right text-coffee pointer-events-none select-none flex-1">
                           <div className="text-xs font-bold tracking-wider mb-0.5 opacity-60">Designed by</div>
                           <div className="text-base italic flex items-center justify-end gap-1 font-sans" style={{ fontWeight: 600 }}>
                              Fun Croissant <span className="not-italic text-lg">🎡</span> 04/2026
@@ -1767,9 +2006,14 @@
                   onToggle={toggleStudent} 
               /> }
               
-              { !printHtml && <nav className="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[98%] max-w-xl bg-[#FFF] border-3 border-coffee rounded-2xl shadow-[4px_4px_0px_#5D4037] flex justify-between px-3 py-3 z-40">
-                {[{ id: 'basic', icon: 'User', label: '點名', color: 'bg-mint' }, { id: 'log', icon: 'Edit3', label: '紀錄', color: 'bg-yellow' }, { id: 'review', icon: 'List', label: '日誌', color: 'bg-pink' }, { id: 'report', icon: 'FileSpreadsheet', label: '報表', color: 'bg-blue-soft' }, { id: 'settings', icon: 'Settings', label: '設定', color: 'bg-red-alert' }].map(tab => ( <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-1 flex flex-col items-center p-2 rounded-xl transition-all duration-300 ${tab.id === 'settings' ? 'nav-btn-settings ' + (activeTab === 'settings' ? 'active' : '') : (activeTab === tab.id ? `${tab.color} -translate-y-4 border-2 border-coffee shadow-sm` : 'opacity-60')}`}><div className={tab.id === 'settings' ? 'text-white' : 'text-coffee'}><Icon name={tab.icon} className="w-8 h-8"/></div><span className={`text-sm font-black mt-1 ${tab.id === 'settings' ? 'text-white' : 'text-coffee'}`}>{tab.label}</span></button> ))}
-              </nav> }
+              {/* 底部浮動導覽列 - 獨立的 Fixed 定位，與頁面同寬 */}
+              { !printHtml && (
+                  <div className="no-print fixed bottom-4 sm:bottom-6 left-1/2 transform -translate-x-1/2 w-[96%] sm:w-[98%] max-w-4xl z-40 pointer-events-none">
+                      <nav className="w-full bg-[#FFF] border-3 border-coffee rounded-2xl shadow-[4px_4px_0px_#5D4037] flex justify-between px-1 sm:px-4 py-2 sm:py-3 mx-auto pointer-events-auto">
+                        {[{ id: 'basic', icon: 'User', label: '點名', color: 'bg-mint' }, { id: 'log', icon: 'Edit3', label: '紀錄', color: 'bg-yellow' }, { id: 'review', icon: 'List', label: '日誌', color: 'bg-pink' }, { id: 'report', icon: 'FileSpreadsheet', label: '報表', color: 'bg-blue-soft' }, { id: 'settings', icon: 'Settings', label: '設定', color: 'bg-red-alert' }].map(tab => ( <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-1 flex flex-col items-center p-2 rounded-xl transition-all duration-300 ${tab.id === 'settings' ? 'nav-btn-settings ' + (activeTab === 'settings' ? 'active' : '') : (activeTab === tab.id ? `${tab.color} -translate-y-4 border-2 border-coffee shadow-sm` : 'opacity-60')}`}><div className={tab.id === 'settings' ? 'text-white' : 'text-coffee'}><Icon name={tab.icon} className="w-7 h-7 sm:w-8 sm:h-8"/></div><span className={`text-xs sm:text-sm font-black mt-1 ${tab.id === 'settings' ? 'text-white' : 'text-coffee'}`}>{tab.label}</span></button> ))}
+                      </nav>
+                  </div>
+              ) }
             </div>
           );
         }
@@ -1791,7 +2035,3 @@
     </script>
 </body>
 </html>
-
-
-
-```
